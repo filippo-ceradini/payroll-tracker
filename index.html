@@ -87,10 +87,35 @@
                 navigator.serviceWorker.register(swPath, { scope: './' })
                     .then(reg => {
                         console.log('Service Worker registered:', reg.scope);
-                        // Check for updates
+                        
+                        // Check for updates immediately and periodically
                         reg.update();
+                        
+                        // Check for updates every 60 seconds
+                        setInterval(() => {
+                            reg.update();
+                        }, 60000);
+                        
+                        // Listen for service worker updates
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New service worker available, prompt user to refresh
+                                    if (confirm('New version available! Reload to update?')) {
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
                     })
                     .catch(err => console.log('Service Worker registration failed:', err));
+                
+                // Listen for service worker controller changes
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    // Reload when new service worker takes control
+                    window.location.reload();
+                });
             });
         }
     </script>
