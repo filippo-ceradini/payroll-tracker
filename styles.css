@@ -212,7 +212,7 @@ body.dark-mode .dark-mode-toggle .dark-icon {
 }
 
 .header-cell {
-    padding: 12px 8px;
+    padding: 6px 8px;
     text-align: center;
     border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -242,7 +242,7 @@ body.dark-mode .dark-mode-toggle .dark-icon {
 }
 
 .day-cell {
-    padding: 12px 8px;
+    padding: 6px 8px;
     text-align: center;
     font-size: 14px;
     border-right: 1px solid #e0e0e0;
@@ -435,7 +435,7 @@ body.dark-mode .action-section {
     
     .header-cell,
     .day-cell {
-        padding: 10px 6px;
+        padding: 5px 6px;
         font-size: 11px;
     }
     
