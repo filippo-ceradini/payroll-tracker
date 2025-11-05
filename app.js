@@ -13,15 +13,26 @@ let state = {
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     loadFromStorage();
+    initializeDarkMode();
     renderDays();
     setupEventListeners();
 });
 
 function initializeApp() {
-    // Set current start date to today
+    // Set current start date based on day of month
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    state.currentStartDate = today;
+    const dayOfMonth = today.getDate();
+    
+    // Create start date for the 15-day period
+    const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // If today is after the 15th, start from the 16th
+    if (dayOfMonth > 15) {
+        startDate.setDate(16);
+    }
+    
+    state.currentStartDate = startDate;
 }
 
 function setupEventListeners() {
@@ -54,6 +65,9 @@ function setupEventListeners() {
 
     // Send button
     document.getElementById('sendBtn').addEventListener('click', handleSend);
+    
+    // Dark mode toggle
+    document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
 }
 
 function handleQuantityChange(e) {
@@ -325,5 +339,18 @@ function loadFromStorage() {
     } catch (e) {
         console.error('Failed to load from localStorage', e);
     }
+}
+
+function initializeDarkMode() {
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+    }
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDarkMode.toString());
 }
 
