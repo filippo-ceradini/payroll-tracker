@@ -1,6 +1,7 @@
 // State management
 let state = {
     currentStartDate: new Date(),
+    currentDate: new Date(), // Today's date for new entries
     quantities: {
         'pm-djsk': 0,
         'overtime': 0,
@@ -19,8 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initializeApp() {
-    // Set current start date based on day of month
+    // Set current date and start date
     const today = new Date();
+    state.currentDate = today;
+    
     const dayOfMonth = today.getDate();
     
     // Create start date for the 15-day period
@@ -33,6 +36,28 @@ function initializeApp() {
     }
     
     state.currentStartDate = startDate;
+    
+    // Update the current date display
+    updateCurrentDateDisplay();
+}
+
+function formatCurrentDate(date) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const dayName = days[date.getDay()];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    
+    return `${dayName}, ${day} ${month} ${year}`;
+}
+
+function updateCurrentDateDisplay() {
+    const currentDateEl = document.getElementById('currentDate');
+    if (currentDateEl) {
+        currentDateEl.textContent = formatCurrentDate(state.currentDate);
+    }
 }
 
 function setupEventListeners() {
@@ -197,6 +222,11 @@ function applyToDay(dateKey) {
     if (!hasQuantities) {
         alert('Please set quantities first using the +1 buttons');
         return;
+    }
+    
+    // Default to today's date if no specific date is provided
+    if (!dateKey) {
+        dateKey = formatDateKey(state.currentDate);
     }
 
     // Show type selection

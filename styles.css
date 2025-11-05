@@ -24,7 +24,7 @@ body {
 header {
     background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
     color: white;
-    padding: 20px;
+    padding: 12px 20px;
     text-align: center;
     transition: background 0.3s ease;
 }
@@ -37,7 +37,7 @@ header {
 }
 
 header h1 {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
     flex: 1;
     text-align: center;
@@ -85,29 +85,45 @@ body.dark-mode .dark-mode-toggle .dark-icon {
 }
 
 .input-section {
-    padding: 20px;
+    padding: 12px;
     background: #f5f5f5;
 }
 
 .input-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
+    gap: 8px;
+    margin-bottom: 8px;
     background: white;
-    padding: 12px;
-    border-radius: 12px;
+    padding: 8px;
+    border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Visual ordering: place the remove button to the left of the quantity
+   and the add button to the right without changing the HTML structure. */
+.input-row > .entry-btn { order: 1; }
+.input-row > .quantity-display { order: 2; }
+.input-row > .quantity-btn[data-action="add"] { order: 3; }
+
+.quantity-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Inside the quantity-display, show remove (-1) before the number */
+.quantity-display .quantity-btn[data-action="remove"] { order: 1; }
+.quantity-display .quantity { order: 2; }
+
 .entry-btn {
     flex: 1;
-    padding: 12px 16px;
+    padding: 8px 12px;
     background: #2196F3;
     color: white;
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s;
@@ -119,29 +135,39 @@ body.dark-mode .dark-mode-toggle .dark-icon {
 }
 
 .quantity-btn {
-    padding: 10px 16px;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
+    /* make +/- buttons a bit smaller so the quantity value becomes the focal point
+       and use muted / desaturated colors so the pill stands out more */
+    padding: 6px 10px;
+    background: rgba(76, 175, 80, 0.12);
+    color: #2e7d32; /* muted green text */
+    border: 1px solid rgba(46, 125, 50, 0.12);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    min-width: 50px;
-    transition: all 0.3s;
+    min-width: 36px;
+    transition: all 0.18s ease;
+}
+
+/* Subtle hover to give affordance without stealing focus from the quantity pill */
+.quantity-btn:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 6px 18px rgba(11,87,164,0.06);
 }
 
 .quantity-btn:active {
-    transform: scale(0.95);
-    background: #45a049;
+    transform: scale(0.96);
+    background: rgba(76, 175, 80, 0.18);
 }
 
 .quantity-btn[data-action="remove"] {
-    background: #f44336;
+    background: rgba(244, 67, 54, 0.12);
+    color: #b71c1c; /* muted red text */
+    border: 1px solid rgba(183, 28, 28, 0.12);
 }
 
 .quantity-btn[data-action="remove"]:active {
-    background: #da190b;
+    background: rgba(244, 67, 54, 0.18);
 }
 
 .quantity-display {
@@ -151,11 +177,24 @@ body.dark-mode .dark-mode-toggle .dark-icon {
 }
 
 .quantity {
-    font-size: 18px;
-    font-weight: 600;
-    min-width: 30px;
+    /* prominent pill-style number to stand out from the +/- buttons */
+    font-size: 16px;
+    font-weight: 700;
+    min-width: 36px;
+    padding: 6px 10px;
     text-align: center;
-    color: #333;
+    color: #0b57a4; /* accent color */
+    background: linear-gradient(180deg, #ffffff 0%, #f3f7fb 100%);
+    border-radius: 8px;
+    border: 1px solid rgba(11,87,164,0.08);
+    box-shadow: 0 4px 10px rgba(11,87,164,0.08);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Gentle hover on the pill to indicate it is the primary value (non-intrusive) */
+.quantity:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(11,87,164,0.09);
 }
 
 .days-section {
@@ -332,6 +371,30 @@ body.dark-mode header {
     background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
 }
 
+.date-section {
+    padding: 8px 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    text-align: center;
+}
+
+.current-date {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2196F3;
+    margin: 0;
+    line-height: 1.2;
+}
+
+body.dark-mode .date-section {
+    background: #252525;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+body.dark-mode .current-date {
+    color: #64b5f6;
+}
+
 body.dark-mode .input-section {
     background: #252525;
 }
@@ -350,7 +413,37 @@ body.dark-mode .entry-btn:active {
 }
 
 body.dark-mode .quantity {
-    color: #e0e0e0;
+    /* dark mode variant for the quantity pill */
+    color: #ffffff; /* use pure white in dark mode per request */
+    background: linear-gradient(180deg, #2a2a2a 0%, #232323 100%);
+    border: 1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.6);
+}
+
+/* Muted button variants for dark mode */
+body.dark-mode .quantity-btn {
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(139,195,74,0.95); /* soft green */
+    border: 1px solid rgba(255,255,255,0.04);
+}
+
+body.dark-mode .quantity-btn:active {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+body.dark-mode .quantity-btn:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+
+body.dark-mode .quantity-btn[data-action="remove"] {
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(244,67,54,0.92); /* soft red */
+    border: 1px solid rgba(255,255,255,0.04);
+}
+
+body.dark-mode .quantity-btn[data-action="remove"]:active {
+    background: rgba(255, 255, 255, 0.04);
 }
 
 body.dark-mode .days-section {
