@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Overtime and amenities tracker for payroll">
+    <meta name="theme-color" content="#2196F3">
+    <title>Payroll Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="icon-192.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Payroll Tracker</h1>
+        </header>
+
+        <div class="input-section">
+            <div class="input-row">
+                <button class="entry-btn" data-type="pm-djsk">PM DJSK</button>
+                <button class="quantity-btn" data-action="add" data-type="pm-djsk">+1</button>
+                <div class="quantity-display">
+                    <span class="quantity" data-type="pm-djsk">0</span>
+                    <button class="quantity-btn" data-action="remove" data-type="pm-djsk">-1</button>
+                </div>
+            </div>
+            
+            <div class="input-row">
+                <button class="entry-btn" data-type="overtime">OVERTIME</button>
+                <button class="quantity-btn" data-action="add" data-type="overtime">+1</button>
+                <div class="quantity-display">
+                    <span class="quantity" data-type="overtime">0</span>
+                    <button class="quantity-btn" data-action="remove" data-type="overtime">-1</button>
+                </div>
+            </div>
+            
+            <div class="input-row">
+                <button class="entry-btn" data-type="amenity">Amenity</button>
+                <button class="quantity-btn" data-action="add" data-type="amenity">+1</button>
+                <div class="quantity-display">
+                    <span class="quantity" data-type="amenity">0</span>
+                    <button class="quantity-btn" data-action="remove" data-type="amenity">-1</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="days-section">
+            <div class="days-header">
+                <button class="nav-btn" id="prevBtn">← PAST</button>
+                <h2 id="dateRange">15 Days</h2>
+                <button class="nav-btn" id="nextBtn">NEXT →</button>
+            </div>
+            
+            <div class="grid-container">
+                <div class="grid-header">
+                    <div class="header-cell">Day</div>
+                    <div class="header-cell">Date</div>
+                    <div class="header-cell">PM DJSK</div>
+                    <div class="header-cell">Overtime</div>
+                    <div class="header-cell">Amenity</div>
+                    <div class="header-cell">Actions</div>
+                </div>
+                <div id="daysGrid" class="days-grid"></div>
+            </div>
+        </div>
+
+        <div class="action-section">
+            <button id="sendBtn" class="send-btn">SEND</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Register service worker with correct scope
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swPath = './service-worker.js';
+                navigator.serviceWorker.register(swPath, { scope: './' })
+                    .then(reg => {
+                        console.log('Service Worker registered:', reg.scope);
+                        // Check for updates
+                        reg.update();
+                    })
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
+
