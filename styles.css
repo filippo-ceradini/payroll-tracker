@@ -326,6 +326,12 @@ body.dark-mode .switch-btn.active {
     background: white;
 }
 
+/* iOS touch scrolling and sticky header fixes */
+.grid-container {
+    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+    position: relative; /* ensure sticky children position correctly */
+}
+
 .grid-header {
     display: grid;
     grid-template-columns: 50px 100px 1fr 1fr 1fr 100px;
@@ -336,6 +342,11 @@ body.dark-mode .switch-btn.active {
     position: sticky;
     top: 0;
     z-index: 10;
+}
+
+/* create its own stacking context to avoid subpixel/paint issues on mobile */
+.grid-header {
+    transform: translateZ(0);
 }
 
 .header-cell {
