@@ -2,13 +2,17 @@
 let state = {
     currentStartDate: new Date(),
     currentDate: new Date(), // Today's date for new entries
+    pmDuskMode: 'pm', // 'pm' or 'dusk'
     quantities: {
-        'pm-djsk': 0,
+        'pm-dusk': 0,
         'overtime': 0,
         'amenity': 0
     },
     daysData: {}
 };
+
+// currently editing dateKey
+let editingDateKey = null;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,26 +23,40 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
-function initializeApp() {
+function initializeToToday() {
     // Set current date and start date
     const today = new Date();
     state.currentDate = today;
     
     const dayOfMonth = today.getDate();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
     
-    // Create start date for the 15-day period
-    const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    // Create start date for the period
+    const startDate = new Date(currentYear, currentMonth, 1);
     startDate.setHours(0, 0, 0, 0);
     
-    // If today is after the 15th, start from the 16th
+    // If today is after the 15th and the month has more than 15 days,
+    // start from the 16th
     if (dayOfMonth > 15) {
-        startDate.setDate(16);
+        const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+        if (daysInMonth > 15) {
+            startDate.setDate(16);
+        }
     }
     
     state.currentStartDate = startDate;
     
     // Update the current date display
     updateCurrentDateDisplay();
+}
+
+function initializeApp() {
+    // Always start with today's view
+    initializeToToday();
+    
+    // Load dark mode preference
+    initializeDarkMode();
 }
 
 function formatCurrentDate(date) {
@@ -61,29 +79,90 @@ function updateCurrentDateDisplay() {
 }
 
 function setupEventListeners() {
+    // Clear cache button
+    document.getElementById('clearCacheBtn').addEventListener('click', () => {
+        // Clear stored data immediately without confirmation
+        localStorage.clear();
+        state = {
+            currentStartDate: new Date(),
+            currentDate: new Date(),
+            pmDuskMode: 'pm',
+            quantities: {
+                'pm-dusk': 0,
+                'overtime': 0,
+                'amenity': 0
+            },
+            daysData: {}
+        };
+        updateQuantityDisplay('pm-dusk');
+        updateQuantityDisplay('overtime');
+        updateQuantityDisplay('amenity');
+        renderDays();
+    });
+
     // Quantity buttons
     document.querySelectorAll('.quantity-btn').forEach(btn => {
         btn.addEventListener('click', handleQuantityChange);
     });
 
-    // Entry buttons (for adding to selected day)
+    // PM/DUSK switch buttons
+    document.querySelectorAll('.switch-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // Remove active class from all buttons in the switch
+            e.target.parentElement.querySelectorAll('.switch-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+            // Add active class to clicked button
+            e.target.classList.add('active');
+            state.pmDuskMode = e.target.dataset.mode;
+        });
+    });
+
+    // Add and Entry buttons
     document.querySelectorAll('.entry-btn').forEach(btn => {
-        btn.addEventListener('click', handleEntryClick);
+        btn.addEventListener('click', handleAddClick);
     });
 
     // Navigation buttons
     document.getElementById('prevBtn').addEventListener('click', () => {
-        const newDate = new Date(state.currentStartDate);
-        newDate.setDate(newDate.getDate() - 15);
-        state.currentStartDate = newDate;
+        const currentDate = new Date(state.currentStartDate);
+        const isCurrentlySecondHalf = currentDate.getDate() > 15;
+        
+        if (isCurrentlySecondHalf) {
+            // Move to first half of current month
+            currentDate.setDate(1);
+        } else {
+            // Move to second half of previous month
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            currentDate.setDate(16);
+        }
+        
+        state.currentStartDate = currentDate;
         renderDays();
         saveToStorage();
     });
 
     document.getElementById('nextBtn').addEventListener('click', () => {
-        const newDate = new Date(state.currentStartDate);
-        newDate.setDate(newDate.getDate() + 15);
-        state.currentStartDate = newDate;
+        const currentDate = new Date(state.currentStartDate);
+        const isCurrentlySecondHalf = currentDate.getDate() > 15;
+        const daysInCurrentMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
+        
+        if (isCurrentlySecondHalf) {
+            // Move to first half of next month
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            currentDate.setDate(1);
+        } else {
+            // Move to second half of current month if available
+            if (daysInCurrentMonth > 15) {
+                currentDate.setDate(16);
+            } else {
+                // If current month doesn't have more than 15 days, move to next month
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                currentDate.setDate(1);
+            }
+        }
+        
+        state.currentStartDate = currentDate;
         renderDays();
         saveToStorage();
     });
@@ -117,17 +196,40 @@ function updateQuantityDisplay(type) {
     }
 }
 
-function handleEntryClick(e) {
+function handleAddClick(e) {
     const type = e.currentTarget.dataset.type;
     const quantity = state.quantities[type];
     
     if (quantity === 0) {
-        alert(`Please set a quantity for ${type.toUpperCase()} first`);
+        alert('Please set a quantity first');
         return;
     }
 
-    // Show day selection
-    showDaySelection(type, quantity);
+    // Add to today's date
+    const dateKey = formatDateKey(state.currentDate);
+    
+    // Initialize day data if needed
+    if (!state.daysData[dateKey]) {
+        state.daysData[dateKey] = {
+            'pm-dusk': { pm: 0, dusk: 0 },
+            'overtime': 0,
+            'amenity': 0
+        };
+    }
+
+    // Add quantity to the selected mode (pm or dusk)
+    if (type === 'pm-dusk') {
+        state.daysData[dateKey]['pm-dusk'][state.pmDuskMode] += quantity;
+    } else {
+        state.daysData[dateKey][type] += quantity;
+    }
+
+    // Reset quantity
+    state.quantities[type] = 0;
+    updateQuantityDisplay(type);
+    
+    renderDays();
+    saveToStorage();
 }
 
 function showDaySelection(type, quantity) {
@@ -154,7 +256,7 @@ function showDaySelection(type, quantity) {
     // Initialize day data if needed
     if (!state.daysData[dateKey]) {
         state.daysData[dateKey] = {
-            'pm-djsk': 0,
+            'pm-dusk': { pm: 0, dusk: 0 },
             'overtime': 0,
             'amenity': 0
         };
@@ -186,10 +288,28 @@ function renderDays() {
     days.forEach((day, index) => {
         const dateKey = formatDateKey(day);
         const dayData = state.daysData[dateKey] || {
-            'pm-djsk': 0,
+            'pm-dusk': { pm: 0, dusk: 0 },
             'overtime': 0,
             'amenity': 0
         };
+
+        // Handle legacy data format
+        let pmDuskDisplay = '';
+        if (dayData['pm-dusk']) {
+            const pmCount = dayData['pm-dusk'].pm || 0;
+            const duskCount = dayData['pm-dusk'].dusk || 0;
+            
+            if (pmCount > 0 && duskCount > 0) {
+                pmDuskDisplay = `PM ${pmCount}, DUSK ${duskCount}`;
+            } else if (pmCount > 0) {
+                pmDuskDisplay = `PM ${pmCount}`;
+            } else if (duskCount > 0) {
+                pmDuskDisplay = `DUSK ${duskCount}`;
+            }
+        } else if (dayData['pm-djsk']) {
+            // Legacy data format
+            pmDuskDisplay = `PM ${dayData['pm-djsk']}`;
+        }
 
         const row = document.createElement('div');
         row.className = 'day-row';
@@ -197,18 +317,18 @@ function renderDays() {
         row.innerHTML = `
             <div class="day-cell day-number">${index + 1}</div>
             <div class="day-cell day-date">${formatDate(day)}</div>
-            <div class="day-cell day-value">${dayData['pm-djsk']}</div>
+            <div class="day-cell day-value">${pmDuskDisplay}</div>
             <div class="day-cell day-value">${dayData['overtime']}</div>
             <div class="day-cell day-value">${dayData['amenity']}</div>
             <div class="day-cell">
-                <button class="apply-btn" data-date-key="${dateKey}">Apply</button>
+                <button class="edit-btn" data-date-key="${dateKey}">Edit</button>
             </div>
         `;
 
-        // Add click handler for apply button
-        const applyBtn = row.querySelector('.apply-btn');
-        applyBtn.addEventListener('click', () => {
-            applyToDay(dateKey);
+        // Add click handler for edit button
+        const editBtn = row.querySelector('.edit-btn');
+        editBtn.addEventListener('click', () => {
+            showEditDialog(dateKey);
         });
 
         daysGrid.appendChild(row);
@@ -231,7 +351,7 @@ function applyToDay(dateKey) {
 
     // Show type selection
     const types = [];
-    if (state.quantities['pm-djsk'] > 0) types.push('PM DJSK');
+    if (state.quantities['pm-dusk'] > 0) types.push('PM/DUSK');
     if (state.quantities['overtime'] > 0) types.push('Overtime');
     if (state.quantities['amenity'] > 0) types.push('Amenity');
 
@@ -259,23 +379,46 @@ function applyToDay(dateKey) {
     saveToStorage();
 }
 
+function getDaysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+}
+
 function getDaysArray() {
     const days = [];
     const startDate = new Date(state.currentStartDate);
+    const year = startDate.getFullYear();
+    const month = startDate.getMonth();
+    const isSecondHalf = startDate.getDate() > 15;
+    const daysInMonth = getDaysInMonth(year, month);
     
-    for (let i = 0; i < 15; i++) {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + i);
-        days.push(date);
+    if (isSecondHalf) {
+        // From 16th to end of month
+        const endDay = daysInMonth;
+        const startDay = 16;
+        
+        for (let day = startDay; day <= endDay; day++) {
+            const date = new Date(year, month, day);
+            days.push(date);
+        }
+    } else {
+        // From 1st to 15th
+        const endDay = Math.min(15, daysInMonth);
+        
+        for (let day = 1; day <= endDay; day++) {
+            const date = new Date(year, month, day);
+            days.push(date);
+        }
     }
     
     return days;
 }
 
 function formatDate(date) {
-    const month = date.getMonth() + 1;
     const day = date.getDate();
-    return `${month}/${day}`;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    // European short format: '1 Nov'
+    return `${day} ${month}`;
 }
 
 function formatDateKey(date) {
@@ -311,7 +454,8 @@ function handleSend() {
     }
 
     // Format email
-    const subject = encodeURIComponent('Payroll Report - ' + new Date().toLocaleDateString());
+    // Use European formatted current date in the subject
+    const subject = encodeURIComponent('Payroll Report - ' + formatCurrentDate(new Date()));
     
     let body = 'Payroll Report\n\n';
     body += 'Date Range: ' + document.getElementById('dateRange').textContent + '\n\n';
@@ -340,6 +484,7 @@ function saveToStorage() {
     try {
         localStorage.setItem('payrollTrackerState', JSON.stringify({
             currentStartDate: state.currentStartDate.toISOString(),
+            pmDuskMode: state.pmDuskMode,
             daysData: state.daysData,
             quantities: state.quantities
         }));
@@ -353,10 +498,12 @@ function loadFromStorage() {
         const saved = localStorage.getItem('payrollTrackerState');
         if (saved) {
             const parsed = JSON.parse(saved);
-            state.currentStartDate = new Date(parsed.currentStartDate);
+            // Always initialize to today's view, but keep the stored data
+            initializeToToday();
+            state.pmDuskMode = parsed.pmDuskMode || 'pm';
             state.daysData = parsed.daysData || {};
             state.quantities = parsed.quantities || {
-                'pm-djsk': 0,
+                'pm-dusk': 0,
                 'overtime': 0,
                 'amenity': 0
             };
@@ -368,6 +515,7 @@ function loadFromStorage() {
         }
     } catch (e) {
         console.error('Failed to load from localStorage', e);
+        initializeToToday(); // Fallback to today if there's an error
     }
 }
 
@@ -376,6 +524,90 @@ function initializeDarkMode() {
     if (isDarkMode) {
         document.body.classList.add('dark-mode');
     }
+}
+
+function showEditDialog(dateKey) {
+    const dialog = document.getElementById('editDialog');
+    if (!dialog) return;
+
+    // ensure day data exists
+    if (!state.daysData[dateKey]) {
+        state.daysData[dateKey] = { 'pm-dusk': { pm: 0, dusk: 0 }, 'overtime': 0, 'amenity': 0 };
+    }
+
+    const dayData = state.daysData[dateKey];
+
+    // populate inputs
+    document.getElementById('pmValue').value = dayData['pm-dusk'].pm || 0;
+    document.getElementById('duskValue').value = dayData['pm-dusk'].dusk || 0;
+    document.getElementById('overtimeValue').value = dayData['overtime'] || 0;
+    document.getElementById('amenityValue').value = dayData['amenity'] || 0;
+
+    // track editing key
+    editingDateKey = dateKey;
+
+    // wire up number input controls
+    setupNumberInputs(dialog);
+
+    // open
+    dialog.classList.add('open');
+
+    // close/cancel handlers
+    dialog.querySelector('.close-dialog').onclick = closeEditDialog;
+    dialog.querySelector('.cancel-btn').onclick = closeEditDialog;
+
+    dialog.querySelector('.save-btn').onclick = () => {
+        saveEditDialog(editingDateKey);
+        closeEditDialog();
+    };
+}
+
+function setupNumberInputs(container) {
+    const inputs = container.querySelectorAll('.number-input');
+    inputs.forEach(group => {
+        const input = group.querySelector('input');
+        const minus = group.querySelector('.minus');
+        const plus = group.querySelector('.plus');
+
+        minus.onclick = () => {
+            const v = parseInt(input.value) || 0;
+            input.value = Math.max(0, v - 1);
+        };
+        plus.onclick = () => {
+            const v = parseInt(input.value) || 0;
+            input.value = v + 1;
+        };
+
+        input.oninput = () => {
+            let v = parseInt(input.value) || 0;
+            if (v < 0) v = 0;
+            input.value = v;
+        };
+    });
+}
+
+function closeEditDialog() {
+    const dialog = document.getElementById('editDialog');
+    if (!dialog) return;
+    dialog.classList.remove('open');
+    editingDateKey = null;
+}
+
+function saveEditDialog(dateKey) {
+    if (!dateKey) return;
+    const pmValue = parseInt(document.getElementById('pmValue').value) || 0;
+    const duskValue = parseInt(document.getElementById('duskValue').value) || 0;
+    const overtimeValue = parseInt(document.getElementById('overtimeValue').value) || 0;
+    const amenityValue = parseInt(document.getElementById('amenityValue').value) || 0;
+
+    state.daysData[dateKey] = {
+        'pm-dusk': { pm: pmValue, dusk: duskValue },
+        'overtime': overtimeValue,
+        'amenity': amenityValue
+    };
+
+    saveToStorage();
+    renderDays();
 }
 
 function toggleDarkMode() {

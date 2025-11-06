@@ -36,6 +36,39 @@ header {
     max-width: 100%;
 }
 
+.header-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.clear-cache-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 20px;
+    padding: 0;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.clear-cache-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+.clear-cache-btn:active {
+    transform: scale(0.95);
+}
+
 header h1 {
     font-size: 20px;
     font-weight: 600;
@@ -127,6 +160,50 @@ body.dark-mode .dark-mode-toggle .dark-icon {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s;
+}
+
+.pm-dusk-switch {
+    display: flex;
+    gap: 4px;
+    background: #e0e0e0;
+    border-radius: 8px;
+    padding: 4px;
+    flex: 1;
+}
+
+.switch-btn {
+    flex: 1;
+    padding: 6px 12px;
+    background: transparent;
+    color: #666;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.switch-btn.active {
+    background: #2196F3;
+    color: white;
+}
+
+.switch-btn:active {
+    transform: scale(0.95);
+}
+
+body.dark-mode .pm-dusk-switch {
+    background: #404040;
+}
+
+body.dark-mode .switch-btn {
+    color: #b0b0b0;
+}
+
+body.dark-mode .switch-btn.active {
+    background: #3498db;
+    color: white;
 }
 
 .entry-btn:active {
@@ -309,20 +386,362 @@ body.dark-mode .dark-mode-toggle .dark-icon {
     color: #333;
 }
 
-.apply-btn {
-    padding: 6px 12px;
-    background: #4CAF50;
+.edit-btn {
+    padding: 6px 10px; /* vertically compact */
+    background: #2196F3;
     color: white;
     border: none;
     border-radius: 6px;
     font-size: 12px;
     cursor: pointer;
+    transition: all 0.18s;
+    min-width: 56px;
+}
+
+.edit-btn:hover {
+    background: #1976D2;
+}
+
+.edit-btn:active {
+    transform: translateY(1px);
+}
+
+/* Edit Dialog */
+.edit-dialog {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.edit-dialog.open {
+    display: flex;
+}
+
+
+.edit-dialog-content {
+    background: white;
+    border-radius: 16px;
+    width: 86%;
+    max-width: 380px; /* slimmer dialog */
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}
+
+.edit-dialog-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.edit-dialog-header h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #333;
+}
+
+.close-dialog {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
     transition: all 0.3s;
 }
 
-.apply-btn:active {
-    transform: scale(0.95);
-    background: #45a049;
+.close-dialog:hover {
+    background: #f5f5f5;
+}
+
+.edit-dialog-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* center everything vertically */
+}
+
+.edit-group {
+    margin-bottom: 14px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* center group contents */
+}
+
+.edit-group label {
+    display: block;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.edit-controls {
+    display: flex;
+    flex-direction: column; /* stack PM and DUSK vertically */
+    gap: 12px;
+    align-items: center; /* center the stacked groups */
+}
+
+.edit-value-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* center label and number-input */
+}
+
+.edit-value-group label {
+    font-size: 14px;
+    color: #666;
+}
+
+
+.number-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f5f5f5;
+    border-radius: 10px;
+    padding: 6px;
+    justify-content: center; /* center buttons and input */
+}
+
+.number-input button {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: white;
+    color: #333;
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.18s;
+}
+
+.number-input button:hover {
+    background: #eee;
+}
+
+.number-input input {
+    width: 56px;
+    height: 36px;
+    border: none;
+    background: white;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+    border-radius: 8px;
+    -webkit-appearance: textfield;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.number-input input::-webkit-outer-spin-button,
+.number-input input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.edit-dialog-footer {
+    padding: 16px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: center; /* center action buttons */
+    gap: 10px;
+}
+
+.cancel-btn,
+.save-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.cancel-btn {
+    background: #f5f5f5;
+    color: #666;
+}
+
+.cancel-btn:hover {
+    background: #eee;
+}
+
+.save-btn {
+    background: #2196F3;
+    color: white;
+}
+
+.save-btn:hover {
+    background: #1976D2;
+}
+
+/* Dark mode styles for edit dialog */
+body.dark-mode .edit-dialog-content {
+    background: #2a2a2a;
+}
+
+body.dark-mode .edit-dialog-header {
+    border-bottom-color: #404040;
+}
+
+body.dark-mode .edit-dialog-header h3 {
+    color: #e0e0e0;
+}
+
+body.dark-mode .close-dialog {
+    color: #b0b0b0;
+}
+
+body.dark-mode .close-dialog:hover {
+    background: #333;
+}
+
+body.dark-mode .edit-group label {
+    color: #e0e0e0;
+}
+
+body.dark-mode .edit-value-group label {
+    color: #b0b0b0;
+}
+
+body.dark-mode .number-input {
+    background: #333;
+}
+
+body.dark-mode .number-input button {
+    background: #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .number-input button:hover {
+    background: #505050;
+}
+
+body.dark-mode .number-input input {
+    background: #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .edit-dialog-footer {
+    border-top-color: #404040;
+}
+
+body.dark-mode .cancel-btn {
+    background: #404040;
+    color: #e0e0e0;
+}
+
+body.dark-mode .cancel-btn:hover {
+    background: #505050;
+}
+
+body.dark-mode .save-btn:hover {
+    background: #1565C0;
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        border-radius: 15px;
+    }
+    
+    header {
+        padding: 12px;
+    }
+    
+    .header-content {
+        gap: 10px;
+    }
+    
+    header h1 {
+        font-size: 18px;
+    }
+    
+    .dark-mode-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+    
+    .grid-header,
+    .day-row {
+        grid-template-columns: 40px 80px 1fr 1fr 1fr 80px;
+        font-size: 11px;
+    }
+    
+    .header-cell,
+    .day-cell {
+        padding: 5px 6px;
+        font-size: 11px;
+    }
+    
+    .nav-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    .edit-dialog-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .edit-dialog-header {
+        padding: 15px;
+    }
+    
+    .edit-dialog-body {
+        padding: 15px;
+    }
+    
+    .edit-controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .number-input button {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .number-input input {
+        width: 50px;
+        height: 36px;
+        font-size: 16px;
+    }
+    
+    .edit-dialog-footer {
+        padding: 15px;
+    }
+    
+    .cancel-btn,
+    .save-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
 }
 
 .action-section {
@@ -410,6 +829,27 @@ body.dark-mode .entry-btn {
 
 body.dark-mode .entry-btn:active {
     background: #2980b9;
+}
+
+body.dark-mode .switch-label {
+    color: #64b5f6;
+}
+
+body.dark-mode .slider {
+    background-color: #1e1e1e;
+    border-color: #64b5f6;
+}
+
+body.dark-mode input:checked + .slider {
+    background-color: #1565c0;
+}
+
+body.dark-mode .apply-entry-btn {
+    background: #1976D2;
+}
+
+body.dark-mode .apply-entry-btn:hover {
+    background: #1565c0;
 }
 
 body.dark-mode .quantity {
