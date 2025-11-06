@@ -353,7 +353,7 @@ function applyToDay(dateKey) {
     const types = [];
     if (state.quantities['pm-dusk'] > 0) types.push('PM/DUSK');
     if (state.quantities['overtime'] > 0) types.push('Overtime');
-    if (state.quantities['amenity'] > 0) types.push('Amenity');
+        if (state.quantities['amenity'] > 0) types.push('Mech overtime');
 
     if (types.length === 0) return;
 
@@ -459,7 +459,7 @@ function handleSend() {
     
     let body = 'Payroll Report\n\n';
     body += 'Date Range: ' + document.getElementById('dateRange').textContent + '\n\n';
-    body += 'Day | Date | PM DJSK | Overtime | Amenity\n';
+    body += 'Day | Date | PM DJSK | Overtime | Mech overtime\n';
     body += '--------------------------------------------\n';
     
     dataToSend.forEach(item => {
@@ -469,7 +469,7 @@ function handleSend() {
     body += '\n\nTotal Summary:\n';
     body += 'PM DJSK: ' + dataToSend.reduce((sum, item) => sum + item.pmDjsk, 0) + '\n';
     body += 'Overtime: ' + dataToSend.reduce((sum, item) => sum + item.overtime, 0) + '\n';
-    body += 'Amenity: ' + dataToSend.reduce((sum, item) => sum + item.amenity, 0) + '\n';
+    body += 'Mech overtime: ' + dataToSend.reduce((sum, item) => sum + item.amenity, 0) + '\n';
 
     const emailBody = encodeURIComponent(body);
     

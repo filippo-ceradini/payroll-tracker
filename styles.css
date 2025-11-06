@@ -34,12 +34,14 @@ header {
     justify-content: space-between;
     align-items: center;
     max-width: 100%;
+    position: relative; /* allow absolute-centering of the title */
 }
 
 .header-controls {
     display: flex;
     gap: 8px;
     align-items: center;
+    width: 100%; /* take full width so we can position controls left/right */
 }
 
 .clear-cache-btn {
@@ -72,8 +74,12 @@ header {
 header h1 {
     font-size: 20px;
     font-weight: 600;
-    flex: 1;
+    margin: 0;
+    position: absolute; /* center without affecting controls */
+    left: 50%;
+    transform: translateX(-50%);
     text-align: center;
+    pointer-events: none; /* avoid intercepting clicks on nearby controls */
 }
 
 .dark-mode-toggle {
@@ -90,6 +96,11 @@ header h1 {
     font-size: 20px;
     padding: 0;
     flex-shrink: 0;
+}
+
+/* keep clear cache on the left and push dark mode toggle to the right */
+.dark-mode-toggle {
+    margin-left: auto;
 }
 
 .dark-mode-toggle:hover {
@@ -118,7 +129,7 @@ body.dark-mode .dark-mode-toggle .dark-icon {
 }
 
 .input-section {
-    padding: 12px;
+    padding: 8px;
     background: #f5f5f5;
 }
 
