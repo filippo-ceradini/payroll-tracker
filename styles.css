@@ -349,6 +349,19 @@ body.dark-mode .switch-btn.active {
     transform: translateZ(0);
 }
 
+/* New inner wrapper to keep header and rows aligned when scrolling */
+.grid-inner {
+    display: inline-block;
+    width: max-content; /* expand to the required width so header & rows match */
+}
+
+/* Ensure the days grid sits below the header inside the same scrolling block */
+.days-grid {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
 .header-cell {
     padding: 6px 8px;
     text-align: center;
