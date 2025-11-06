@@ -380,7 +380,8 @@ body.dark-mode .switch-btn.active {
 
 .day-row {
     display: grid;
-    grid-template-columns: 50px 100px 1fr 1fr 1fr 100px;
+    /* match header column widths exactly to ensure perfect alignment */
+    grid-template-columns: 40px 90px 1fr 1fr 1fr 80px;
     border-bottom: 1px solid #e0e0e0;
     transition: background 0.2s;
 }
