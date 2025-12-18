@@ -323,7 +323,6 @@ function renderDays() {
         }
         
         row.innerHTML = `
-            <div class="day-cell day-number">${index + 1}</div>
             <div class="day-cell day-date">${formatDate(day)}</div>
             <div class="day-cell day-value">${pmDuskDisplay}</div>
             <div class="day-cell day-value">${dayData['overtime']}</div>

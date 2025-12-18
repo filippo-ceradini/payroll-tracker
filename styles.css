@@ -420,18 +420,14 @@ body.dark-mode .switch-btn.active {
 /* Shared grid column layout for header and rows */
 .grid-header,
 .day-row {
-    grid-template-columns: 40px 1fr 2fr 1fr 1fr 80px; /* Adjust column widths as needed */
+    grid-template-columns: 80px 2fr 1fr 1fr 80px; /* Adjust column widths as needed */
     align-items: center;
-}
-
-.day-number {
-    font-weight: 600;
-    color: #2196F3;
 }
 
 .day-date {
     font-size: 12px;
     color: #666;
+    font-weight: 600; /* Make the date bold */
 }
 
 .day-value {
@@ -980,7 +976,7 @@ body.dark-mode .day-cell {
 }
 
 body.dark-mode .day-number {
-    color: #3498db;
+    /* This class is no longer used, but we'll keep the color for the date */
 }
 
 body.dark-mode .day-date {
@@ -1025,7 +1021,7 @@ body.dark-mode .action-section {
     
     .grid-header,
     .day-row {
-        grid-template-columns: 40px 80px 1fr 1fr 1fr 80px;
+        grid-template-columns: 60px 1fr 1fr 1fr 80px;
         font-size: 11px;
     }
     
