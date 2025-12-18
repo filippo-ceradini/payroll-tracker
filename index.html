@@ -102,22 +102,15 @@
             <div class="edit-dialog-body">
                 <div class="edit-group">
                     <label>PM/DUSK</label>
-                    <div class="edit-controls">
-                        <div class="edit-value-group">
-                            <label>PM</label>
-                            <div class="number-input">
-                                <button class="minus">−</button>
-                                <input type="number" id="pmValue" min="0" value="0">
-                                <button class="plus">+</button>
-                            </div>
+                    <div class="edit-controls" id="editPmDuskControls">
+                        <div class="pm-dusk-switch">
+                            <button class="switch-btn" data-mode="pm">PM</button>
+                            <button class="switch-btn" data-mode="dusk">DUSK</button>
                         </div>
-                        <div class="edit-value-group">
-                            <label>DUSK</label>
-                            <div class="number-input">
-                                <button class="minus">−</button>
-                                <input type="number" id="duskValue" min="0" value="0">
-                                <button class="plus">+</button>
-                            </div>
+                        <div class="number-input">
+                            <button class="minus">−</button>
+                            <input type="number" id="pmDuskValue" min="0" value="0">
+                            <button class="plus">+</button>
                         </div>
                     </div>
                 </div>

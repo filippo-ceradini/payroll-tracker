@@ -17,7 +17,7 @@ let editingDateKey = null;
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     // Check for logged-in user
-    const loggedInUser = sessionStorage.getItem('loggedInUser');
+    const loggedInUser = localStorage.getItem('loggedInUser');
     if (!loggedInUser) {
         // If no user, redirect to login page
         window.location.href = 'login.html';
@@ -93,7 +93,7 @@ function updateHeader(username) {
 
 function setupEventListeners() {
     document.getElementById('logoutBtn').addEventListener('click', () => {
-        sessionStorage.removeItem('loggedInUser');
+        localStorage.removeItem('loggedInUser');
         window.location.href = 'login.html';
     });
 
@@ -176,8 +176,14 @@ function handleQuantityChange(e) {
     const action = btn.dataset.action;
     const type = btn.dataset.type;
 
-    if (action === 'add') {
-        state.quantities[type]++;
+    if (type === 'pm-dusk' && action === 'add') {
+        // For PM/Dusk, the first addition starts at 4
+        state.quantities[type] = state.quantities[type] === 0 ? 4 : state.quantities[type] + 1;
+    } else if (type === 'pm-dusk' && action === 'remove') {
+        // Don't allow going below 4, but can be reset by adding to a day
+        if (state.quantities[type] > 4) state.quantities[type]--;
+    } else if (action === 'add') {
+        state.quantities[type]++; // For other types
     } else if (action === 'remove' && state.quantities[type] > 0) {
         state.quantities[type]--;
     }
@@ -445,7 +451,7 @@ function handleSend() {
                 day: index + 1,
                 date: formatDate(day),
                 fullDate: dateKey,
-                pmDjsk: dayData['pm-djsk'] || 0,
+                pmDjsk: dayData['PM-DUSK'] || 0,
                 overtime: dayData['overtime'] || 0,
                 amenity: dayData['amenity'] || 0
             });
@@ -484,41 +490,49 @@ function handleSend() {
     window.location.href = mailtoLink;
 }
 
-function saveToStorage() {
+async function saveToStorage() {
+    const username = localStorage.getItem('loggedInUser');
+    if (!username) return;
+
+    const dataToSave = {
+        currentStartDate: state.currentStartDate.toISOString(),
+        pmDuskMode: state.pmDuskMode,
+        daysData: state.daysData,
+        quantities: state.quantities
+    };
+
     try {
-        localStorage.setItem('payrollTrackerState', JSON.stringify({
-            currentStartDate: state.currentStartDate.toISOString(),
-            pmDuskMode: state.pmDuskMode,
-            daysData: state.daysData,
-            quantities: state.quantities
-        }));
+        await fetch(`/api/data/${username}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataToSave)
+        });
     } catch (e) {
-        console.error('Failed to save to localStorage', e);
+        console.error('Failed to save data to server', e);
     }
 }
 
-function loadFromStorage() {
+async function loadFromStorage() {
+    const username = localStorage.getItem('loggedInUser');
+    if (!username) return;
+
     try {
-        const saved = localStorage.getItem('payrollTrackerState');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            // Always initialize to today's view, but keep the stored data
-            initializeToToday();
-            state.pmDuskMode = parsed.pmDuskMode || 'pm';
-            state.daysData = parsed.daysData || {};
-            state.quantities = parsed.quantities || {
-                'pm-dusk': 0,
-                'overtime': 0,
-                'amenity': 0
-            };
-            
-            // Update quantity displays
-            Object.keys(state.quantities).forEach(type => {
-                updateQuantityDisplay(type);
-            });
+        const response = await fetch(`/api/data/${username}`);
+        const data = await response.json();
+
+        initializeToToday(); // Always start with today's view
+
+        if (data && Object.keys(data).length > 0) {
+            state.pmDuskMode = data.pmDuskMode || 'pm';
+            state.daysData = data.daysData || {};
+            state.quantities = data.quantities || { 'pm-dusk': 0, 'overtime': 0, 'amenity': 0 };
         }
+
+        // Update quantity displays from loaded state
+        Object.keys(state.quantities).forEach(type => updateQuantityDisplay(type));
+        renderDays(); // Re-render with loaded data
     } catch (e) {
-        console.error('Failed to load from localStorage', e);
+        console.error('Failed to load data from server', e);
         initializeToToday(); // Fallback to today if there's an error
     }
 }
@@ -542,10 +556,32 @@ function showEditDialog(dateKey) {
     const dayData = state.daysData[dateKey];
 
     // populate inputs
-    document.getElementById('pmValue').value = dayData['pm-dusk'].pm || 0;
-    document.getElementById('duskValue').value = dayData['pm-dusk'].dusk || 0;
+    const pmDuskData = dayData['pm-dusk'] || { pm: 0, dusk: 0 };
+    const pmValue = pmDuskData.pm || 0;
+    const duskValue = pmDuskData.dusk || 0;
+
+    const pmDuskSwitch = dialog.querySelector('#editPmDuskControls .pm-dusk-switch');
+    const pmBtn = pmDuskSwitch.querySelector('[data-mode="pm"]');
+    const duskBtn = pmDuskSwitch.querySelector('[data-mode="dusk"]');
+    const pmDuskInput = document.getElementById('pmDuskValue');
+
+    // Set active button and value
+    if (pmValue > 0) {
+        pmBtn.classList.add('active');
+        duskBtn.classList.remove('active');
+        pmDuskInput.value = pmValue;
+    } else { // Default to DUSK if it has a value, or just default to PM if both are 0
+        duskBtn.classList.add('active');
+        pmBtn.classList.remove('active');
+        pmDuskInput.value = duskValue;
+    }
+
     document.getElementById('overtimeValue').value = dayData['overtime'] || 0;
     document.getElementById('amenityValue').value = dayData['amenity'] || 0;
+
+    // Add event listeners for the switch
+    pmBtn.onclick = () => { pmBtn.classList.add('active'); duskBtn.classList.remove('active'); };
+    duskBtn.onclick = () => { duskBtn.classList.add('active'); pmBtn.classList.remove('active'); };
 
     // track editing key
     editingDateKey = dateKey;
@@ -573,13 +609,25 @@ function setupNumberInputs(container) {
         const minus = group.querySelector('.minus');
         const plus = group.querySelector('.plus');
 
+        const isPmDuskInput = input.id === 'pmDuskValue';
+
         minus.onclick = () => {
             const v = parseInt(input.value) || 0;
-            input.value = Math.max(0, v - 1);
+            if (isPmDuskInput) {
+                // For PM/Dusk, don't go below 4 unless setting to 0
+                input.value = v > 4 ? v - 1 : 0;
+            } else {
+                input.value = Math.max(0, v - 1);
+            }
         };
         plus.onclick = () => {
             const v = parseInt(input.value) || 0;
-            input.value = v + 1;
+            if (isPmDuskInput) {
+                // For PM/Dusk, jump from 0 to 4
+                input.value = v === 0 ? 4 : v + 1;
+            } else {
+                input.value = v + 1;
+            }
         };
 
         input.oninput = () => {
@@ -599,13 +647,19 @@ function closeEditDialog() {
 
 function saveEditDialog(dateKey) {
     if (!dateKey) return;
-    const pmValue = parseInt(document.getElementById('pmValue').value) || 0;
-    const duskValue = parseInt(document.getElementById('duskValue').value) || 0;
+
+    const pmDuskSwitch = document.querySelector('#editPmDuskControls .pm-dusk-switch');
+    const activeMode = pmDuskSwitch.querySelector('.active').dataset.mode;
+    const pmDuskValue = parseInt(document.getElementById('pmDuskValue').value) || 0;
+
     const overtimeValue = parseInt(document.getElementById('overtimeValue').value) || 0;
     const amenityValue = parseInt(document.getElementById('amenityValue').value) || 0;
 
     state.daysData[dateKey] = {
-        'pm-dusk': { pm: pmValue, dusk: duskValue },
+        'pm-dusk': {
+            pm: activeMode === 'pm' ? pmDuskValue : 0,
+            dusk: activeMode === 'dusk' ? pmDuskValue : 0
+        },
         'overtime': overtimeValue,
         'amenity': amenityValue
     };

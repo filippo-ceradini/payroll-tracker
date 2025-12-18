@@ -552,6 +552,12 @@ body.dark-mode .switch-btn.active {
     align-items: center; /* center the stacked groups */
 }
 
+/* For the new PM/Dusk switch in the edit dialog */
+#editPmDuskControls {
+    flex-direction: row;
+    gap: 16px;
+}
+
 .edit-value-group {
     width: 100%;
     display: flex;
