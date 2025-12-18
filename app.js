@@ -277,6 +277,9 @@ function renderDays() {
     const daysGrid = document.getElementById('daysGrid');
     const days = getDaysArray();
     
+    // Get today's date key for highlighting
+    const todayKey = formatDateKey(new Date());
+
     // Update date range display
     const startDate = days[0];
     const endDate = days[days.length - 1];
@@ -313,6 +316,11 @@ function renderDays() {
 
         const row = document.createElement('div');
         row.className = 'day-row';
+
+        // Add a class if the row represents the current calendar day
+        if (dateKey === todayKey) {
+            row.classList.add('current-day');
+        }
         
         row.innerHTML = `
             <div class="day-cell day-number">${index + 1}</div>
@@ -615,4 +623,3 @@ function toggleDarkMode() {
     const isDarkMode = document.body.classList.contains('dark-mode');
     localStorage.setItem('darkMode', isDarkMode.toString());
 }
-

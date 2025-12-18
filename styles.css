@@ -9,6 +9,7 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     padding: 20px;
+    touch-action: manipulation; /* Disable double-tap to zoom on touch devices */
     color: #333;
 }
 
@@ -390,6 +391,17 @@ body.dark-mode .switch-btn.active {
 .day-row:last-child {
     border-bottom: none;
 }
+
+/* Highlight for the current day */
+.day-row.current-day {
+    background-color: #e3f2fd; /* Light blue to match theme */
+    font-weight: 600; /* Make text slightly bolder */
+}
+
+.day-row.current-day:hover {
+    background-color: #dbeffc; /* A slightly darker blue on hover */
+}
+
 
 .day-cell {
     padding: 8px;
@@ -950,6 +962,16 @@ body.dark-mode .day-row {
 
 body.dark-mode .day-row:hover {
     background: #333333;
+}
+
+/* Highlight for the current day in dark mode */
+body.dark-mode .day-row.current-day {
+    background-color: #2c3e50; /* A distinct, lighter dark blue */
+    font-weight: 600;
+}
+
+body.dark-mode .day-row.current-day:hover {
+    background-color: #34495e; /* A slightly lighter shade on hover */
 }
 
 body.dark-mode .day-cell {
