@@ -334,8 +334,7 @@ body.dark-mode .switch-btn.active {
 
 .grid-header {
     display: grid;
-    /* slightly narrower fixed columns to reduce horizontal scroll */
-    grid-template-columns: 40px 90px 1fr 1fr 1fr 80px;
+    grid-template-columns: 50px 100px 1fr 1fr 1fr 100px;
     background: #2196F3;
     color: white;
     font-weight: 600;
@@ -364,7 +363,7 @@ body.dark-mode .switch-btn.active {
 }
 
 .header-cell {
-    padding: 4px 6px; /* slightly reduced padding to save horizontal space */
+    padding: 6px 8px;
     text-align: center;
     border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -380,8 +379,7 @@ body.dark-mode .switch-btn.active {
 
 .day-row {
     display: grid;
-    /* match header column widths exactly to ensure perfect alignment */
-    grid-template-columns: 40px 90px 1fr 1fr 1fr 80px;
+    grid-template-columns: 50px 100px 1fr 1fr 1fr 100px;
     border-bottom: 1px solid #e0e0e0;
     transition: background 0.2s;
 }
@@ -395,7 +393,7 @@ body.dark-mode .switch-btn.active {
 }
 
 .day-cell {
-    padding: 4px 6px; /* slightly reduced padding to save horizontal space */
+    padding: 6px 8px;
     text-align: center;
     font-size: 14px;
     border-right: 1px solid #e0e0e0;
