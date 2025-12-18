@@ -334,13 +334,12 @@ body.dark-mode .switch-btn.active {
 
 .grid-header {
     display: grid;
-    grid-template-columns: 50px 100px 1fr 1fr 1fr 100px;
     background: #2196F3;
     color: white;
     font-weight: 600;
     font-size: 12px;
     position: sticky;
-    top: 0;
+    top: 0; /* for sticky positioning */
     z-index: 10;
 }
 
@@ -351,8 +350,9 @@ body.dark-mode .switch-btn.active {
 
 /* New inner wrapper to keep header and rows aligned when scrolling */
 .grid-inner {
-    display: inline-block;
-    width: max-content; /* expand to the required width so header & rows match */
+    display: flex;
+    flex-direction: column;
+    width: 100%; /* ensure it fills the container */
 }
 
 /* Ensure the days grid sits below the header inside the same scrolling block */
@@ -363,7 +363,7 @@ body.dark-mode .switch-btn.active {
 }
 
 .header-cell {
-    padding: 6px 8px;
+    padding: 8px;
     text-align: center;
     border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -379,7 +379,6 @@ body.dark-mode .switch-btn.active {
 
 .day-row {
     display: grid;
-    grid-template-columns: 50px 100px 1fr 1fr 1fr 100px;
     border-bottom: 1px solid #e0e0e0;
     transition: background 0.2s;
 }
@@ -393,7 +392,7 @@ body.dark-mode .switch-btn.active {
 }
 
 .day-cell {
-    padding: 6px 8px;
+    padding: 8px;
     text-align: center;
     font-size: 14px;
     border-right: 1px solid #e0e0e0;
@@ -404,6 +403,13 @@ body.dark-mode .switch-btn.active {
 
 .day-cell:last-child {
     border-right: none;
+}
+
+/* Shared grid column layout for header and rows */
+.grid-header,
+.day-row {
+    grid-template-columns: 40px 1fr 2fr 1fr 1fr 80px; /* Adjust column widths as needed */
+    align-items: center;
 }
 
 .day-number {
@@ -1012,4 +1018,3 @@ body.dark-mode .action-section {
         font-size: 12px;
     }
 }
-
