@@ -16,13 +16,25 @@ let editingDateKey = null;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
-    initializeApp();
+    // Check for logged-in user
+    const loggedInUser = sessionStorage.getItem('loggedInUser');
+    if (!loggedInUser) {
+        // If no user, redirect to login page
+        window.location.href = 'login.html';
+        return; // Stop execution
+    }
+
+    // Proceed with app initialization
+    initializeApp(loggedInUser);
+});
+
+function initializeApp(username) {
+    updateHeader(username);
     loadFromStorage();
     initializeDarkMode();
     renderDays();
     setupEventListeners();
-});
-
+}
 function initializeToToday() {
     // Set current date and start date
     const today = new Date();
@@ -51,14 +63,6 @@ function initializeToToday() {
     updateCurrentDateDisplay();
 }
 
-function initializeApp() {
-    // Always start with today's view
-    initializeToToday();
-    
-    // Load dark mode preference
-    initializeDarkMode();
-}
-
 function formatCurrentDate(date) {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -78,26 +82,19 @@ function updateCurrentDateDisplay() {
     }
 }
 
+function updateHeader(username) {
+    const headerTitle = document.getElementById('headerTitle');
+    if (headerTitle) {
+        // Capitalize first letter for display
+        const displayName = username.charAt(0).toUpperCase() + username.slice(1).replace('_', ' ');
+        headerTitle.textContent = `Hello, ${displayName}`;
+    }
+}
+
 function setupEventListeners() {
-    // Clear cache button
-    document.getElementById('clearCacheBtn').addEventListener('click', () => {
-        // Clear stored data immediately without confirmation
-        localStorage.clear();
-        state = {
-            currentStartDate: new Date(),
-            currentDate: new Date(),
-            pmDuskMode: 'pm',
-            quantities: {
-                'pm-dusk': 0,
-                'overtime': 0,
-                'amenity': 0
-            },
-            daysData: {}
-        };
-        updateQuantityDisplay('pm-dusk');
-        updateQuantityDisplay('overtime');
-        updateQuantityDisplay('amenity');
-        renderDays();
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        sessionStorage.removeItem('loggedInUser');
+        window.location.href = 'login.html';
     });
 
     // Quantity buttons

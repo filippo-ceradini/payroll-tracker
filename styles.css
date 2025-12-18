@@ -418,7 +418,11 @@ body.dark-mode .switch-btn.active {
 }
 
 /* Shared grid column layout for header and rows */
-.grid-header,
+.grid-header {
+    grid-template-columns: 80px 2fr 1fr 1fr 80px; /* Adjust column widths as needed */
+    align-items: center;
+}
+
 .day-row {
     grid-template-columns: 80px 2fr 1fr 1fr 80px; /* Adjust column widths as needed */
     align-items: center;
