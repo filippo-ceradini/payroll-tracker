@@ -424,11 +424,13 @@ function getDaysArray() {
 }
 
 function formatDate(date) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayName = days[date.getDay()];
     const day = date.getDate();
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const month = months[date.getMonth()];
     // European short format: '1 Nov'
-    return `${day} ${month}`;
+    return `${dayName} ${day} ${month}`;
 }
 
 function formatDateKey(date) {
