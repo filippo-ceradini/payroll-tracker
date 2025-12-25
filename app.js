@@ -76,6 +76,14 @@ async function handleLogin(e) {
 
 function initializeApp(username) {
     updateHeader(username);
+    
+    // Check if user is Filippo (case-insensitive) to show Mech features
+    if (username.toLowerCase() === 'filippo') {
+        document.body.classList.add('is-mech-user');
+    } else {
+        document.body.classList.remove('is-mech-user');
+    }
+
     loadFromStorage();
     initializeDarkMode();
     renderDays();
@@ -376,7 +384,7 @@ function renderDays() {
             <div class="day-cell day-date">${formatDate(day)}</div>
             <div class="day-cell day-value">${pmDuskDisplay}</div>
             <div class="day-cell day-value">${dayData['overtime']}</div>
-            <div class="day-cell day-value">${dayData['amenity']}</div>
+            <div class="day-cell day-value mech-only">${dayData['amenity']}</div>
             <div class="day-cell">
                 <button class="edit-btn" data-date-key="${dateKey}">Edit</button>
             </div>
@@ -490,6 +498,7 @@ function formatDateKey(date) {
 function handleSend() {
     const days = getDaysArray();
     const dataToSend = [];
+    const isMechUser = document.body.classList.contains('is-mech-user');
 
     days.forEach((day, index) => {
         const dateKey = formatDateKey(day);
@@ -518,17 +527,26 @@ function handleSend() {
     
     let body = 'Payroll Report\n\n';
     body += 'Date Range: ' + document.getElementById('dateRange').textContent + '\n\n';
-    body += 'Day | Date | PM DJSK | Overtime | Mech overtime\n';
+    
+    // Build header row
+    body += 'Day | Date | PM DJSK | Overtime';
+    if (isMechUser) body += ' | Mech overtime';
+    body += '\n';
     body += '--------------------------------------------\n';
     
     dataToSend.forEach(item => {
-        body += `${item.day} | ${item.date} | ${item.pmDjsk} | ${item.overtime} | ${item.amenity}\n`;
+        body += `${item.day} | ${item.date} | ${item.pmDjsk} | ${item.overtime}`;
+        if (isMechUser) body += ` | ${item.amenity}`;
+        body += '\n';
     });
     
     body += '\n\nTotal Summary:\n';
     body += 'PM DJSK: ' + dataToSend.reduce((sum, item) => sum + item.pmDjsk, 0) + '\n';
     body += 'Overtime: ' + dataToSend.reduce((sum, item) => sum + item.overtime, 0) + '\n';
-    body += 'Mech overtime: ' + dataToSend.reduce((sum, item) => sum + item.amenity, 0) + '\n';
+    
+    if (isMechUser) {
+        body += 'Mech overtime: ' + dataToSend.reduce((sum, item) => sum + item.amenity, 0) + '\n';
+    }
 
     const emailBody = encodeURIComponent(body);
     
