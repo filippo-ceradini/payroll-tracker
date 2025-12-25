@@ -238,9 +238,9 @@ function handleQuantityChange(e) {
         // Don't allow going below 4, but can be reset by adding to a day
         if (state.quantities[type] > 4) state.quantities[type]--;
     } else if (action === 'add') {
-        state.quantities[type]++; // For other types
+        state.quantities[type] += 0.25; // For other types
     } else if (action === 'remove' && state.quantities[type] > 0) {
-        state.quantities[type]--;
+        state.quantities[type] = Math.max(0, state.quantities[type] - 0.25);
     }
 
     updateQuantityDisplay(type);
@@ -708,28 +708,26 @@ function setupNumberInputs(container) {
         const isPmDuskInput = input.id === 'pmDuskValue';
 
         minus.onclick = () => {
-            const v = parseInt(input.value) || 0;
+            const v = parseFloat(input.value) || 0;
             if (isPmDuskInput) {
                 // For PM/Dusk, don't go below 4 unless setting to 0
                 input.value = v > 4 ? v - 1 : 0;
             } else {
-                input.value = Math.max(0, v - 1);
+                input.value = Math.max(0, v - 0.25);
             }
         };
         plus.onclick = () => {
-            const v = parseInt(input.value) || 0;
+            const v = parseFloat(input.value) || 0;
             if (isPmDuskInput) {
                 // For PM/Dusk, jump from 0 to 4
                 input.value = v === 0 ? 4 : v + 1;
             } else {
-                input.value = v + 1;
+                input.value = v + 0.25;
             }
         };
 
         input.oninput = () => {
-            let v = parseInt(input.value) || 0;
-            if (v < 0) v = 0;
-            input.value = v;
+            if (input.value < 0) input.value = 0;
         };
     });
 }
@@ -748,8 +746,8 @@ function saveEditDialog(dateKey) {
     const activeMode = pmDuskSwitch.querySelector('.active').dataset.mode;
     const pmDuskValue = parseInt(document.getElementById('pmDuskValue').value) || 0;
 
-    const overtimeValue = parseInt(document.getElementById('overtimeValue').value) || 0;
-    const amenityValue = parseInt(document.getElementById('amenityValue').value) || 0;
+    const overtimeValue = parseFloat(document.getElementById('overtimeValue').value) || 0;
+    const amenityValue = parseFloat(document.getElementById('amenityValue').value) || 0;
 
     state.daysData[dateKey] = {
         'pm-dusk': {

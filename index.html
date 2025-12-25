@@ -71,19 +71,19 @@
             
             <div class="input-row">
                 <button class="entry-btn" data-type="overtime">OVERTIME</button>
-                <button class="quantity-btn" data-action="add" data-type="overtime">+1</button>
+                <button class="quantity-btn" data-action="add" data-type="overtime">+0.25</button>
                 <div class="quantity-display">
                     <span class="quantity" data-type="overtime">0</span>
-                    <button class="quantity-btn" data-action="remove" data-type="overtime">-1</button>
+                    <button class="quantity-btn" data-action="remove" data-type="overtime">-0.25</button>
                 </div>
             </div>
             
             <div class="input-row mech-only">
                 <button class="entry-btn" data-type="amenity">Mech overtime</button>
-                <button class="quantity-btn" data-action="add" data-type="amenity">+1</button>
+                <button class="quantity-btn" data-action="add" data-type="amenity">+0.25</button>
                 <div class="quantity-display">
                     <span class="quantity" data-type="amenity">0</span>
-                    <button class="quantity-btn" data-action="remove" data-type="amenity">-1</button>
+                    <button class="quantity-btn" data-action="remove" data-type="amenity">-0.25</button>
                 </div>
             </div>
         </div>
@@ -140,7 +140,7 @@
                     <label>Overtime</label>
                     <div class="number-input">
                         <button class="minus">−</button>
-                        <input type="number" id="overtimeValue" min="0" value="0">
+                        <input type="number" id="overtimeValue" min="0" step="0.25" value="0">
                         <button class="plus">+</button>
                     </div>
                 </div>
@@ -148,7 +148,7 @@
                     <label>Mech overtime</label>
                     <div class="number-input">
                         <button class="minus">−</button>
-                        <input type="number" id="amenityValue" min="0" value="0">
+                        <input type="number" id="amenityValue" min="0" step="0.25" value="0">
                         <button class="plus">+</button>
                     </div>
                 </div>
