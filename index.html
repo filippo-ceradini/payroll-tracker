@@ -13,7 +13,29 @@
     <link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
-    <div class="container">
+    <!-- Login View -->
+    <div id="login-view" class="hidden">
+        <div class="login-container">
+            <div class="login-box">
+                <h1>Payroll Tracker</h1>
+                <form id="loginForm">
+                    <div class="input-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="login-btn">Login</button>
+                    <p id="errorMessage" class="error-message"></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App View -->
+    <div id="app-view" class="container hidden">
         <header>
             <div class="header-content">
                 <h1 id="headerTitle">Payroll Tracker</h1>

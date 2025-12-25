@@ -97,7 +97,7 @@ app.post('/api/data/:username', async (req, res) => {
 
 // Serve login page for the root
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Serve the main app

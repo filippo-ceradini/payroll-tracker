@@ -16,17 +16,62 @@ let editingDateKey = null;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
-    // Check for logged-in user
-    const loggedInUser = localStorage.getItem('loggedInUser');
-    if (!loggedInUser) {
-        // If no user, redirect to login page
-        window.location.href = 'login.html';
-        return; // Stop execution
+    // Setup Login Form Listener
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
     }
 
-    // Proceed with app initialization
-    initializeApp(loggedInUser);
+    checkLoginState();
 });
+
+function checkLoginState() {
+    const loggedInUser = localStorage.getItem('loggedInUser');
+    if (loggedInUser) {
+        showAppView();
+        initializeApp(loggedInUser);
+    } else {
+        showLoginView();
+    }
+}
+
+function showAppView() {
+    document.getElementById('login-view').classList.add('hidden');
+    document.getElementById('app-view').classList.remove('hidden');
+}
+
+function showLoginView() {
+    document.getElementById('app-view').classList.add('hidden');
+    document.getElementById('login-view').classList.remove('hidden');
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const errorMessage = document.getElementById('errorMessage');
+    errorMessage.textContent = '';
+    
+    const username = e.target.username.value;
+    const password = e.target.password.value;
+
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            localStorage.setItem('loggedInUser', data.username);
+            checkLoginState();
+        } else {
+            errorMessage.textContent = data.message || 'Login failed.';
+        }
+    } catch (error) {
+        errorMessage.textContent = 'Offline or server error. Please try again.';
+    }
+}
 
 function initializeApp(username) {
     updateHeader(username);
@@ -94,7 +139,7 @@ function updateHeader(username) {
 function setupEventListeners() {
     document.getElementById('logoutBtn').addEventListener('click', () => {
         localStorage.removeItem('loggedInUser');
-        window.location.href = 'login.html';
+        checkLoginState();
     });
 
     // Quantity buttons
@@ -503,6 +548,10 @@ async function saveToStorage() {
         quantities: state.quantities
     };
 
+    // 1. Save locally (Offline First)
+    localStorage.setItem(`payroll_data_${username}`, JSON.stringify(dataToSave));
+
+    // 2. Try to sync to server (Best Effort)
     try {
         await fetch(`/api/data/${username}`, {
             method: 'POST',
@@ -510,7 +559,7 @@ async function saveToStorage() {
             body: JSON.stringify(dataToSave)
         });
     } catch (e) {
-        console.error('Failed to save data to server', e);
+        console.warn('Server sync failed, data saved locally:', e);
     }
 }
 
@@ -518,25 +567,45 @@ async function loadFromStorage() {
     const username = localStorage.getItem('loggedInUser');
     if (!username) return;
 
+    let loadedData = null;
+
+    // 1. Try Local Storage first
+    const localDataString = localStorage.getItem(`payroll_data_${username}`);
+    if (localDataString) {
+        loadedData = JSON.parse(localDataString);
+    }
+
+    // 2. Try Server (Sync)
     try {
         const response = await fetch(`/api/data/${username}`);
-        const data = await response.json();
-
-        initializeToToday(); // Always start with today's view
-
-        if (data && Object.keys(data).length > 0) {
-            state.pmDuskMode = data.pmDuskMode || 'pm';
-            state.daysData = data.daysData || {};
-            state.quantities = data.quantities || { 'pm-dusk': 0, 'overtime': 0, 'amenity': 0 };
+        if (response.ok) {
+            const serverData = await response.json();
+            // Simple sync strategy: If we have no local data, or if server data exists,
+            // we might want to use server data. For now, let's assume server is truth 
+            // if we are online, BUT if we have local changes that haven't synced, this is risky.
+            // For this specific request "offline on a phone", local data is usually the most relevant.
+            // We will use server data only if local is empty.
+            if (!loadedData || Object.keys(loadedData).length === 0) {
+                loadedData = serverData;
+                // Cache it locally
+                localStorage.setItem(`payroll_data_${username}`, JSON.stringify(serverData));
+            }
         }
-
-        // Update quantity displays from loaded state
-        Object.keys(state.quantities).forEach(type => updateQuantityDisplay(type));
-        renderDays(); // Re-render with loaded data
     } catch (e) {
-        console.error('Failed to load data from server', e);
-        initializeToToday(); // Fallback to today if there's an error
+        console.warn('Server load failed, using local data:', e);
     }
+
+    initializeToToday(); // Always start with today's view
+
+    if (loadedData && Object.keys(loadedData).length > 0) {
+        state.pmDuskMode = loadedData.pmDuskMode || 'pm';
+        state.daysData = loadedData.daysData || {};
+        state.quantities = loadedData.quantities || { 'pm-dusk': 0, 'overtime': 0, 'amenity': 0 };
+    }
+
+    // Update quantity displays from loaded state
+    Object.keys(state.quantities).forEach(type => updateQuantityDisplay(type));
+    renderDays(); // Re-render with loaded data
 }
 
 function initializeDarkMode() {
