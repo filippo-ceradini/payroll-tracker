@@ -908,27 +908,6 @@ body.dark-mode .entry-btn:active {
     background: #2980b9;
 }
 
-body.dark-mode .switch-label {
-    color: #64b5f6;
-}
-
-body.dark-mode .slider {
-    background-color: #1e1e1e;
-    border-color: #64b5f6;
-}
-
-body.dark-mode input:checked + .slider {
-    background-color: #1565c0;
-}
-
-body.dark-mode .apply-entry-btn {
-    background: #1976D2;
-}
-
-body.dark-mode .apply-entry-btn:hover {
-    background: #1565c0;
-}
-
 body.dark-mode .quantity {
     /* dark mode variant for the quantity pill */
     color: #ffffff; /* use pure white in dark mode per request */
@@ -1003,10 +982,6 @@ body.dark-mode .day-cell {
     color: #e0e0e0;
 }
 
-body.dark-mode .day-number {
-    /* This class is no longer used, but we'll keep the color for the date */
-}
-
 body.dark-mode .day-date {
     color: #b0b0b0;
 }
@@ -1063,100 +1038,6 @@ body.dark-mode .action-section {
         padding: 8px 12px;
         font-size: 12px;
     }
-}
-
-/* Login Modal Styles */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1001;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.4);
-}
-
-.modal.open {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-content {
-    width: 100%;
-    max-width: 400px;
-    margin: auto;
-}
-
-.login-box {
-    background: white;
-    padding: 40px;
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-    text-align: center;
-}
-
-.login-box h1 {
-    margin-bottom: 30px;
-    color: #333;
-    font-weight: 600;
-}
-
-.input-group {
-    margin-bottom: 20px;
-    text-align: left;
-}
-
-.input-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #666;
-    font-weight: 500;
-}
-
-.input-group input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.3s;
-}
-
-.input-group input:focus {
-    outline: none;
-    border-color: #2196F3;
-}
-
-.login-btn {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    margin-top: 10px;
-}
-
-.login-btn:hover {
-    opacity: 0.9;
-}
-
-.login-btn:active {
-    transform: scale(0.98);
-}
-
-.error-message {
-    color: #e53935;
-    margin-top: 15px;
-    height: 20px;
-    font-weight: 500;
 }
 
 /* --- Login View Styles (Merged) --- */
@@ -1233,4 +1114,11 @@ body.dark-mode .action-section {
 
 .login-btn:active {
     transform: scale(0.98);
+}
+
+.error-message {
+    color: #e53935;
+    margin-top: 15px;
+    height: 20px;
+    font-weight: 500;
 }

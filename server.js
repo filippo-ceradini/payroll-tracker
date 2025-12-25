@@ -26,6 +26,12 @@ async function connectDB() {
     }
 }
 
+// Middleware to make db accessible to routes (and mockable in tests)
+app.use((req, res, next) => {
+    req.db = db;
+    next();
+});
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
 function authenticateToken(req, res, next) {
@@ -50,7 +56,7 @@ app.post('/api/login', async (req, res) => {
         return res.status(400).json({ message: 'Username and password are required.' });
     }
 
-    const users = db.collection('users');
+    const users = req.db.collection('users');
     const user = await users.findOne({ username });
 
     if (user && (await bcrypt.compare(password, user.password))) {
@@ -69,7 +75,7 @@ app.get('/api/data/:username', authenticateToken, async (req, res) => {
         return res.sendStatus(403);
     }
 
-    const user = await db.collection('users').findOne({ username });
+    const user = await req.db.collection('users').findOne({ username });
 
     if (user) {
         res.json(user.payrollData || {});
@@ -88,7 +94,7 @@ app.post('/api/data/:username', authenticateToken, async (req, res) => {
 
     const data = req.body;
 
-    const result = await db.collection('users').updateOne(
+    const result = await req.db.collection('users').updateOne(
         { username },
         { $set: { payrollData: data } }
     );
@@ -112,8 +118,13 @@ app.get('/index.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-connectDB().then(() => {
-    app.listen(port, () => {
-        console.log(`Server running on http://localhost:${port}`);
+// Only start the server if run directly (not imported by tests)
+if (require.main === module) {
+    connectDB().then(() => {
+        app.listen(port, () => {
+            console.log(`Server running on http://localhost:${port}`);
+        });
     });
-});
+}
+
+module.exports = { app, setTestDB: (mockDb) => { db = mockDb; } };

@@ -15,15 +15,17 @@ let state = {
 let editingDateKey = null;
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', () => {
-    // Setup Login Form Listener
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        // Setup Login Form Listener
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleLogin);
+        }
 
-    checkLoginState();
-});
+        checkLoginState();
+    });
+}
 
 function checkLoginState() {
     const loggedInUser = localStorage.getItem('loggedInUser');
@@ -231,17 +233,7 @@ function handleQuantityChange(e) {
     const action = btn.dataset.action;
     const type = btn.dataset.type;
 
-    if (type === 'pm-dusk' && action === 'add') {
-        // For PM/Dusk, the first addition starts at 4
-        state.quantities[type] = state.quantities[type] === 0 ? 4 : state.quantities[type] + 1;
-    } else if (type === 'pm-dusk' && action === 'remove') {
-        // Don't allow going below 4, but can be reset by adding to a day
-        if (state.quantities[type] > 4) state.quantities[type]--;
-    } else if (action === 'add') {
-        state.quantities[type] += 0.25; // For other types
-    } else if (action === 'remove' && state.quantities[type] > 0) {
-        state.quantities[type] = Math.max(0, state.quantities[type] - 0.25);
-    }
+    state.quantities[type] = calculateNewQuantity(state.quantities[type], action, type);
 
     updateQuantityDisplay(type);
     saveToStorage();
@@ -282,47 +274,6 @@ function handleAddClick(e) {
         state.daysData[dateKey][type] += quantity;
     }
 
-    // Reset quantity
-    state.quantities[type] = 0;
-    updateQuantityDisplay(type);
-    
-    renderDays();
-    saveToStorage();
-}
-
-function showDaySelection(type, quantity) {
-    const days = getDaysArray();
-    const dayOptions = days.map((day, index) => {
-        const dateKey = formatDateKey(day);
-        const currentValue = state.daysData[dateKey]?.[type] || 0;
-        return `${index + 1}. ${formatDate(day)} (Current: ${currentValue})`;
-    }).join('\n');
-
-    const dayNum = prompt(`Select day (1-15) to add ${quantity} ${type}:\n\n${dayOptions}`);
-    
-    if (dayNum === null) return;
-    
-    const dayIndex = parseInt(dayNum) - 1;
-    if (isNaN(dayIndex) || dayIndex < 0 || dayIndex >= days.length) {
-        alert('Invalid day number');
-        return;
-    }
-
-    const selectedDay = days[dayIndex];
-    const dateKey = formatDateKey(selectedDay);
-    
-    // Initialize day data if needed
-    if (!state.daysData[dateKey]) {
-        state.daysData[dateKey] = {
-            'pm-dusk': { pm: 0, dusk: 0 },
-            'overtime': 0,
-            'amenity': 0
-        };
-    }
-
-    // Add quantity
-    state.daysData[dateKey][type] += quantity;
-    
     // Reset quantity
     state.quantities[type] = 0;
     updateQuantityDisplay(type);
@@ -398,50 +349,6 @@ function renderDays() {
 
         daysGrid.appendChild(row);
     });
-}
-
-function applyToDay(dateKey) {
-    // Check if any quantities are set
-    const hasQuantities = Object.values(state.quantities).some(qty => qty > 0);
-    
-    if (!hasQuantities) {
-        alert('Please set quantities first using the +1 buttons');
-        return;
-    }
-    
-    // Default to today's date if no specific date is provided
-    if (!dateKey) {
-        dateKey = formatDateKey(state.currentDate);
-    }
-
-    // Show type selection
-    const types = [];
-    if (state.quantities['pm-dusk'] > 0) types.push('PM/DUSK');
-    if (state.quantities['overtime'] > 0) types.push('Overtime');
-        if (state.quantities['amenity'] > 0) types.push('Mech overtime');
-
-    if (types.length === 0) return;
-
-    // For simplicity, apply all quantities
-    if (!state.daysData[dateKey]) {
-        state.daysData[dateKey] = {
-            'pm-djsk': 0,
-            'overtime': 0,
-            'amenity': 0
-        };
-    }
-
-    // Apply all quantities
-    Object.keys(state.quantities).forEach(type => {
-        if (state.quantities[type] > 0) {
-            state.daysData[dateKey][type] += state.quantities[type];
-            state.quantities[type] = 0;
-            updateQuantityDisplay(type);
-        }
-    });
-
-    renderDays();
-    saveToStorage();
 }
 
 function getDaysInMonth(year, month) {
@@ -766,4 +673,30 @@ function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
     const isDarkMode = document.body.classList.contains('dark-mode');
     localStorage.setItem('darkMode', isDarkMode.toString());
+}
+
+// --- Helper Functions (Exported for Testing) ---
+
+function calculateNewQuantity(current, action, type) {
+    let newValue = current;
+    if (type === 'pm-dusk') {
+        if (action === 'add') {
+            // For PM/Dusk, the first addition starts at 4
+            newValue = current === 0 ? 4 : current + 1;
+        } else if (action === 'remove') {
+            // Don't allow going below 4
+            if (current > 4) newValue--;
+        }
+    } else {
+        if (action === 'add') {
+            newValue += 0.25;
+        } else if (action === 'remove') {
+            newValue = Math.max(0, current - 0.25);
+        }
+    }
+    return newValue;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { calculateNewQuantity, formatDate, formatDateKey };
 }
