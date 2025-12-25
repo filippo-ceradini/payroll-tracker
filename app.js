@@ -402,24 +402,46 @@ function formatDateKey(date) {
     return `${year}-${month}-${day}`;
 }
 
+function padEnd(str, length, char = ' ') {
+    return String(str).padEnd(length, char);
+}
+
 function handleSend() {
     const days = getDaysArray();
     const dataToSend = [];
     const isMechUser = document.body.classList.contains('is-mech-user');
 
-    days.forEach((day, index) => {
+    days.forEach(day => {
         const dateKey = formatDateKey(day);
         const dayData = state.daysData[dateKey];
         
-        if (dayData && Object.values(dayData).some(val => val > 0)) {
-            dataToSend.push({
-                day: index + 1,
-                date: formatDate(day),
-                fullDate: dateKey,
-                pmDjsk: dayData['PM-DUSK'] || 0,
-                overtime: dayData['overtime'] || 0,
-                amenity: dayData['amenity'] || 0
-            });
+        if (dayData) {
+            const pmDuskData = dayData['pm-dusk'] || { pm: 0, dusk: 0 };
+            const pmCount = pmDuskData.pm || 0;
+            const duskCount = pmDuskData.dusk || 0;
+            const overtime = dayData['overtime'] || 0;
+            const amenity = dayData['amenity'] || 0;
+
+            const hasData = (pmCount > 0 || duskCount > 0 || overtime > 0 || amenity > 0);
+
+            if (hasData) {
+                let pmDuskDisplay = '';
+                if (pmCount > 0 && duskCount > 0) {
+                    pmDuskDisplay = `PM ${pmCount}, DUSK ${duskCount}`;
+                } else if (pmCount > 0) {
+                    pmDuskDisplay = `PM ${pmCount}`;
+                } else if (duskCount > 0) {
+                    pmDuskDisplay = `DUSK ${duskCount}`;
+                }
+
+                dataToSend.push({
+                    date: formatDate(day),
+                    pmDuskDisplay: pmDuskDisplay,
+                    pmDuskTotal: pmCount + duskCount,
+                    overtime: overtime,
+                    amenity: amenity
+                });
+            }
         }
     });
 
@@ -428,31 +450,31 @@ function handleSend() {
         return;
     }
 
-    // Format email
-    // Use European formatted current date in the subject
+    if (!confirm(`You are about to generate a report for ${dataToSend.length} day(s). Continue?`)) {
+        return;
+    }
+
     const subject = encodeURIComponent('Payroll Report - ' + formatCurrentDate(new Date()));
     
     let body = 'Payroll Report\n\n';
     body += 'Date Range: ' + document.getElementById('dateRange').textContent + '\n\n';
     
-    // Build header row
-    body += 'Day | Date | PM DJSK | Overtime';
-    if (isMechUser) body += ' | Mech overtime';
+    body += `${padEnd('Date', 12)}| ${padEnd('PM/DUSK', 15)}| ${padEnd('Overtime', 10)}`;
+    if (isMechUser) body += `| ${padEnd('Mech OT', 10)}`;
     body += '\n';
-    body += '--------------------------------------------\n';
+    body += '-'.repeat(isMechUser ? 55 : 42) + '\n';
     
     dataToSend.forEach(item => {
-        body += `${item.day} | ${item.date} | ${item.pmDjsk} | ${item.overtime}`;
-        if (isMechUser) body += ` | ${item.amenity}`;
+        body += `${padEnd(item.date, 12)}| ${padEnd(item.pmDuskDisplay, 15)}| ${padEnd(item.overtime.toFixed(2), 10)}`;
+        if (isMechUser) body += `| ${padEnd(item.amenity.toFixed(2), 10)}`;
         body += '\n';
     });
     
     body += '\n\nTotal Summary:\n';
-    body += 'PM DJSK: ' + dataToSend.reduce((sum, item) => sum + item.pmDjsk, 0) + '\n';
-    body += 'Overtime: ' + dataToSend.reduce((sum, item) => sum + item.overtime, 0) + '\n';
-    
+    body += 'PM/DUSK: ' + dataToSend.reduce((sum, item) => sum + item.pmDuskTotal, 0) + '\n';
+    body += 'Overtime: ' + (dataToSend.reduce((sum, item) => sum + item.overtime, 0)).toFixed(2) + '\n';
     if (isMechUser) {
-        body += 'Mech overtime: ' + dataToSend.reduce((sum, item) => sum + item.amenity, 0) + '\n';
+        body += 'Mech overtime: ' + (dataToSend.reduce((sum, item) => sum + item.amenity, 0)).toFixed(2) + '\n';
     }
 
     const emailBody = encodeURIComponent(body);
