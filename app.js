@@ -450,10 +450,6 @@ function handleSend() {
         return;
     }
 
-    if (!confirm(`You are about to generate a report for ${dataToSend.length} day(s). Continue?`)) {
-        return;
-    }
-
     const subject = encodeURIComponent('Payroll Report - ' + formatCurrentDate(new Date()));
     
     let body = 'Payroll Report\n\n';
