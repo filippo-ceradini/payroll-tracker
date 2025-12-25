@@ -3,6 +3,7 @@ const express = require('express');
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -19,29 +20,25 @@ async function connectDB() {
         db = client.db(); // Use default database from connection string
         console.log('Connected to MongoDB');
 
-        // Seed the database with the default user if it doesn't exist
-        await seedDatabase();
-
     } catch (err) {
         console.error('Failed to connect to MongoDB', err);
         process.exit(1);
     }
 }
 
-async function seedDatabase() {
-    const users = db.collection('users');
-    const userExists = await users.findOne({ username: 'john_doe' });
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
-    if (!userExists) {
-        console.log('Seeding database with user: john_doe');
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash('1234', salt);
-        await users.insertOne({
-            username: 'john_doe',
-            password: hashedPassword,
-            payrollData: {}
-        });
-    }
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (token == null) return res.sendStatus(401);
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403);
+        req.user = user;
+        next();
+    });
 }
 
 // --- API Routes ---
@@ -57,16 +54,21 @@ app.post('/api/login', async (req, res) => {
     const user = await users.findOne({ username });
 
     if (user && (await bcrypt.compare(password, user.password))) {
-        // In a real app, you'd return a JWT here. For simplicity, we'll use the username.
-        res.json({ message: 'Login successful', username: user.username });
+        const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '24h' });
+        res.json({ message: 'Login successful', username: user.username, token });
     } else {
         res.status(401).json({ message: 'Invalid username or password.' });
     }
 });
 
 // Get user data
-app.get('/api/data/:username', async (req, res) => {
+app.get('/api/data/:username', authenticateToken, async (req, res) => {
     const { username } = req.params;
+    
+    if (req.user.username !== username) {
+        return res.sendStatus(403);
+    }
+
     const user = await db.collection('users').findOne({ username });
 
     if (user) {
@@ -77,8 +79,13 @@ app.get('/api/data/:username', async (req, res) => {
 });
 
 // Save user data
-app.post('/api/data/:username', async (req, res) => {
+app.post('/api/data/:username', authenticateToken, async (req, res) => {
     const { username } = req.params;
+
+    if (req.user.username !== username) {
+        return res.sendStatus(403);
+    }
+
     const data = req.body;
 
     const result = await db.collection('users').updateOne(

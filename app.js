@@ -64,6 +64,7 @@ async function handleLogin(e) {
 
         if (response.ok) {
             localStorage.setItem('loggedInUser', data.username);
+            localStorage.setItem('authToken', data.token);
             checkLoginState();
         } else {
             errorMessage.textContent = data.message || 'Login failed.';
@@ -139,6 +140,7 @@ function updateHeader(username) {
 function setupEventListeners() {
     document.getElementById('logoutBtn').addEventListener('click', () => {
         localStorage.removeItem('loggedInUser');
+        localStorage.removeItem('authToken');
         checkLoginState();
     });
 
@@ -555,7 +557,10 @@ async function saveToStorage() {
     try {
         await fetch(`/api/data/${username}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
             body: JSON.stringify(dataToSave)
         });
     } catch (e) {
@@ -577,7 +582,9 @@ async function loadFromStorage() {
 
     // 2. Try Server (Sync)
     try {
-        const response = await fetch(`/api/data/${username}`);
+        const response = await fetch(`/api/data/${username}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        });
         if (response.ok) {
             const serverData = await response.json();
             // Simple sync strategy: If we have no local data, or if server data exists,

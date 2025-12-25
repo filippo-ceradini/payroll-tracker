@@ -1,6 +1,6 @@
 # Payroll Tracker To-Do List
 
-- [ ] Connect & deploy on Render
+- [x] ~~Connect & deploy on Render~~
 - [ ] Hide or refactor the "Mech overtime" / "amenity" fields if not needed
 - [ ] Improve the `handleSend` function (e.g., add a confirmation step, format the email better)
 - [ ] Declutter and refactor code to eliminate redundant functions and improve clarity
