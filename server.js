@@ -101,8 +101,10 @@ app.post('/api/login', async (req, res) => {
 // Get user data
 app.get('/api/data/:username', authenticateToken, async (req, res) => {
     const { username } = req.params;
+    const requester = req.user.username;
     
-    if (req.user.username !== username) {
+    // Allow access if it's the user's own data OR if the requester is 'renita'
+    if (requester !== username && requester.toLowerCase() !== 'renita') {
         return res.sendStatus(403);
     }
 
@@ -135,6 +137,17 @@ app.post('/api/data/:username', authenticateToken, async (req, res) => {
     } else {
         res.status(404).json({ message: 'User not found or data was unchanged' });
     }
+});
+
+// Get list of users (Admin/Renita only)
+app.get('/api/users', authenticateToken, async (req, res) => {
+    if (req.user.username.toLowerCase() !== 'renita') {
+        return res.sendStatus(403);
+    }
+
+    // Return list of usernames
+    const users = await req.db.collection('users').find({}, { projection: { username: 1 } }).toArray();
+    res.json(users.map(u => u.username));
 });
 
 // --- Serve Frontend ---

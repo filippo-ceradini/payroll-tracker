@@ -11,7 +11,8 @@ let state = {
         'amenity': 0
     },
     selectedCommission: '',
-    daysData: {}
+    daysData: {},
+    isReadOnly: false
 };
 
 // currently editing dateKey
@@ -82,11 +83,19 @@ async function handleLogin(e) {
 async function initializeApp(username) {
     updateHeader(username);
     
+    // Check if user is Renita (Admin View)
+    if (username.toLowerCase() === 'renita') {
+        document.body.classList.add('is-admin');
+        setupAdminView();
+    } else {
+        document.body.classList.remove('is-admin');
+        const adminSection = document.getElementById('admin-section');
+        if (adminSection) adminSection.classList.add('hidden');
+    }
+
     // Check if user is Filippo (case-insensitive) to show Mech features
     if (username.toLowerCase() === 'filippo') {
         document.body.classList.add('is-mech-user');
-    } else {
-        document.body.classList.remove('is-mech-user');
     }
 
     await loadCommissionData();
@@ -96,6 +105,65 @@ async function initializeApp(username) {
     renderDays();
     setupEventListeners();
 }
+
+async function setupAdminView() {
+    const adminSection = document.getElementById('admin-section');
+    if (adminSection) adminSection.classList.remove('hidden');
+    
+    // Fetch list of users
+    try {
+        const response = await fetch('/api/users', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        });
+        if (response.ok) {
+            const users = await response.json();
+            const container = document.getElementById('userButtons');
+            container.innerHTML = '';
+            
+            users.forEach(u => {
+                if (u.toLowerCase() === 'renita') return;
+                const btn = document.createElement('button');
+                btn.textContent = u;
+                btn.className = 'user-select-btn';
+                btn.style.margin = '5px';
+                btn.onclick = () => loadUserReadOnly(u);
+                container.appendChild(btn);
+            });
+        }
+    } catch (e) {
+        console.error('Failed to load users', e);
+    }
+}
+
+async function loadUserReadOnly(targetUsername) {
+    state.isReadOnly = true;
+    
+    // Update header
+    const headerTitle = document.getElementById('headerTitle');
+    if (headerTitle) headerTitle.textContent = `Viewing: ${targetUsername}`;
+
+    // Update Mech status based on viewed user
+    if (targetUsername.toLowerCase() === 'filippo') {
+        document.body.classList.add('is-mech-user');
+    } else {
+        document.body.classList.remove('is-mech-user');
+    }
+
+    try {
+        const response = await fetch(`/api/data/${targetUsername}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            state.daysData = data.daysData || {};
+            state.pmDuskMode = data.pmDuskMode || 'pm';
+            renderDays();
+        }
+    } catch (e) {
+        console.error('Error loading user data', e);
+    }
+}
+
 function initializeToToday() {
     // Set current date and start date
     const today = new Date();
@@ -203,6 +271,7 @@ function setupEventListeners() {
 
     // Logout button inside menu
     menuLogoutBtn.addEventListener('click', () => {
+        userMenuOverlay.classList.add('hidden');
         localStorage.removeItem('loggedInUser');
         localStorage.removeItem('authToken');
         checkLoginState();
@@ -391,6 +460,7 @@ function handleAddCommissionClick() {
 function renderDays() {
     const daysGrid = document.getElementById('daysGrid');
     const days = getDaysArray();
+    let periodTotal = 0;
     
     // Get today's date key for highlighting
     const todayKey = formatDateKey(new Date());
@@ -412,26 +482,21 @@ function renderDays() {
             'commissions': []
         };
 
-        // Handle legacy data format
-        let pmDuskDisplay = '';
-        if (dayData['pm-dusk']) {
-            const pmCount = dayData['pm-dusk'].pm || 0;
-            const duskCount = dayData['pm-dusk'].dusk || 0;
-            
-            if (pmCount > 0 && duskCount > 0) {
-                pmDuskDisplay = `PM ${pmCount}, DUSK ${duskCount}`;
-            } else if (pmCount > 0) {
-                pmDuskDisplay = `PM ${pmCount}`;
-            } else if (duskCount > 0) {
-                pmDuskDisplay = `DUSK ${duskCount}`;
-            }
-        } else if (dayData['pm-djsk']) {
-            // Legacy data format
-            pmDuskDisplay = `PM ${dayData['pm-djsk']}`;
-        }
+        const mergedCommissions = getMergedCommissionString(dayData);
+        
+        const pmCount = dayData['pm-dusk']?.pm || 0;
+        const duskCount = dayData['pm-dusk']?.dusk || 0;
+        const pmCommData = COMMISSION_DATA['PM'] || COMMISSION_DATA['pm'];
+        const duskCommData = COMMISSION_DATA['DUSK'] || COMMISSION_DATA['dusk'];
+        const pmTotal = pmCount * (pmCommData?.commission || 0);
+        const duskTotal = duskCount * (duskCommData?.commission || 0);
 
-        const commissionsDisplay = (dayData.commissions || []).join(', ');
+        const dailyTotal = (dayData.commissions || []).reduce((sum, code) => {
+            const comm = COMMISSION_DATA[code];
+            return sum + (comm ? comm.commission : 0);
+        }, 0) + pmTotal + duskTotal;
 
+        periodTotal += dailyTotal;
         const row = document.createElement('div');
         row.className = 'day-row';
 
@@ -442,23 +507,50 @@ function renderDays() {
         
         row.innerHTML = `
             <div class="day-cell day-date">${formatDate(day)}</div>
-            <div class="day-cell day-value">${pmDuskDisplay}</div>
             <div class="day-cell day-value">${dayData['overtime']}</div>
-            <div class="day-cell day-value">${commissionsDisplay}</div>
+            <div class="day-cell day-value">${mergedCommissions}</div>
             <div class="day-cell day-value mech-only">${dayData['amenity']}</div>
+            <div class="day-cell day-value">$${dailyTotal.toFixed(2)}</div>
             <div class="day-cell">
-                <button class="edit-btn" data-date-key="${dateKey}">Edit</button>
+                ${!state.isReadOnly ? `<button class="edit-btn" data-date-key="${dateKey}">Edit</button>` : ''}
             </div>
         `;
 
         // Add click handler for edit button
-        const editBtn = row.querySelector('.edit-btn');
-        editBtn.addEventListener('click', () => {
-            showEditDialog(dateKey);
-        });
+        if (!state.isReadOnly) {
+            const editBtn = row.querySelector('.edit-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', () => {
+                    showEditDialog(dateKey);
+                });
+            }
+        }
 
         daysGrid.appendChild(row);
     });
+
+    const totalEl = document.getElementById('periodTotalValue');
+    if (totalEl) totalEl.textContent = periodTotal.toFixed(2);
+}
+
+function getMergedCommissionString(dayData) {
+    const parts = [];
+    
+    // PM/Dusk
+    const pmCount = dayData['pm-dusk']?.pm || 0;
+    const duskCount = dayData['pm-dusk']?.dusk || 0;
+    
+    if (pmCount > 0) parts.push(pmCount > 1 ? `PM x${pmCount}` : 'PM');
+    if (duskCount > 0) parts.push(duskCount > 1 ? `DUSK x${duskCount}` : 'DUSK');
+    
+    // Commissions
+    const commissions = dayData.commissions || [];
+    const counts = {};
+    commissions.forEach(c => counts[c] = (counts[c] || 0) + 1);
+    
+    Object.entries(counts).forEach(([code, count]) => parts.push(count > 1 ? `${code} x${count}` : code));
+    
+    return parts.join(', ');
 }
 
 function getDaysInMonth(year, month) {
@@ -548,6 +640,8 @@ function handleSend() {
                 dataToSend.push({
                     date: formatDate(day),
                     pmDuskDisplay: pmDuskDisplay,
+                    pmCount: pmCount,
+                    duskCount: duskCount,
                     pmDuskTotal: pmCount + duskCount, // For summary
                     overtime: overtime,
                     amenity: amenity,
@@ -595,6 +689,22 @@ function handleSend() {
                 summary.breakdown[code] = (summary.breakdown[code] || 0) + 1;
             }
         });
+        
+        // Add PM/DUSK to breakdown
+        if (item.pmCount > 0) {
+            const code = COMMISSION_DATA['PM'] ? 'PM' : (COMMISSION_DATA['pm'] ? 'pm' : null);
+            if (code) {
+                summary.totalValue += COMMISSION_DATA[code].commission * item.pmCount;
+                summary.breakdown[code] = (summary.breakdown[code] || 0) + item.pmCount;
+            }
+        }
+        if (item.duskCount > 0) {
+            const code = COMMISSION_DATA['DUSK'] ? 'DUSK' : (COMMISSION_DATA['dusk'] ? 'dusk' : null);
+            if (code) {
+                summary.totalValue += COMMISSION_DATA[code].commission * item.duskCount;
+                summary.breakdown[code] = (summary.breakdown[code] || 0) + item.duskCount;
+            }
+        }
         return summary;
     }, { totalValue: 0, breakdown: {} });
 
@@ -623,6 +733,7 @@ function handleSend() {
 }
 
 async function saveToStorage() {
+    if (state.isReadOnly) return;
     const username = localStorage.getItem('loggedInUser');
     if (!username) return;
 
@@ -687,6 +798,7 @@ async function loadFromStorage() {
     }
 
     initializeToToday(); // Always start with today's view
+    state.isReadOnly = false; // Reset read-only state on load
 
     if (loadedData && Object.keys(loadedData).length > 0) {
         state.pmDuskMode = loadedData.pmDuskMode || 'pm';

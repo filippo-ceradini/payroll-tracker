@@ -11,6 +11,13 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="icon-192.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icon-192.svg">
+    <style>
+        /* Admin View Styles */
+        .is-admin .input-section { display: none !important; }
+        .is-admin .edit-btn { display: none !important; }
+        .is-admin .action-section { display: none !important; }
+        #admin-section { margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; }
+    </style>
 </head>
 <body>
     <!-- Login View -->
@@ -49,6 +56,12 @@
 
         <div class="date-section">
             <h2 class="current-date"> Today: </h2><h2 id="currentDate" class="current-date"></h2>
+        </div>
+
+        <!-- Admin/Renita Section -->
+        <div id="admin-section" class="hidden">
+            <h3>Select User to View</h3>
+            <div id="userButtons" class="input-row" style="flex-wrap: wrap; justify-content: center;"></div>
         </div>
 
         <div class="input-section">
@@ -102,18 +115,22 @@
                 <div class="grid-inner">
                     <div class="grid-header">
                         <div class="header-cell">Date</div>
-                        <div class="header-cell">PM DUSK</div>
                         <div class="header-cell">Overtime</div>
                         <div class="header-cell">Commission</div>
                         <div class="header-cell mech-only">Mech overtime</div>
+                        <div class="header-cell">Total</div>
                         <div class="header-cell">Actions</div>
                     </div>
                     <div id="daysGrid" class="days-grid"></div>
                 </div>
             </div>
         </div>
+        
+        <div class="total-section">
+            Period Total: $<span id="periodTotalValue">0.00</span>
+        </div>
 
-        <div class="action-section">
+        <div class="action-section hidden">
             <button id="sendBtn" class="send-btn">SEND</button>
         </div>
     </div>
