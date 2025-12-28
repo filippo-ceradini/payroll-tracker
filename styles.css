@@ -89,22 +89,6 @@ header h1 {
     pointer-events: none; /* avoid intercepting clicks on nearby controls */
 }
 
-.dark-mode-toggle {
-    background: rgba(255, 255, 255, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 20px;
-    padding: 0;
-    flex-shrink: 0;
-}
-
 /* keep clear cache on the left and push dark mode toggle to the right */
 .dark-mode-toggle {
     margin-left: auto;
@@ -117,22 +101,6 @@ header h1 {
 
 .dark-mode-toggle:active {
     transform: scale(0.95);
-}
-
-.dark-mode-toggle .light-icon {
-    display: none;
-}
-
-.dark-mode-toggle .dark-icon {
-    display: block;
-}
-
-body.dark-mode .dark-mode-toggle .light-icon {
-    display: block;
-}
-
-body.dark-mode .dark-mode-toggle .dark-icon {
-    display: none;
 }
 
 .input-section {
@@ -227,6 +195,18 @@ body.dark-mode .switch-btn.active {
 .entry-btn:active {
     transform: scale(0.95);
     background: #1976D2;
+}
+
+.entry-select {
+    flex: 1;
+    padding: 8px 12px;
+    background: white;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
 }
 
 .quantity-btn {
@@ -425,12 +405,13 @@ body.dark-mode .switch-btn.active {
 
 /* Shared grid column layout for header and rows */
 .grid-header {
-    grid-template-columns: 80px 2fr 1fr 1fr 80px; /* Adjust column widths as needed */
+    /* Date | PM/DUSK | Overtime | Commission | Mech OT | Actions */
+    grid-template-columns: 80px 1.5fr 1fr 1.5fr 1fr 80px;
     align-items: center;
 }
 
 .day-row {
-    grid-template-columns: 80px 2fr 1fr 1fr 80px; /* Adjust column widths as needed */
+    grid-template-columns: 80px 1.5fr 1fr 1.5fr 1fr 80px;
     align-items: center;
 }
 
@@ -439,11 +420,10 @@ body.dark-mode .switch-btn.active {
 body:not(.is-mech-user) .mech-only {
     display: none !important;
 }
-
-/* Adjust grid columns when mech column is hidden (4 columns instead of 5) */
 body:not(.is-mech-user) .grid-header,
 body:not(.is-mech-user) .day-row {
-    grid-template-columns: 80px 2fr 1fr 80px;
+    /* Date | PM/DUSK | Overtime | Commission | Actions */
+    grid-template-columns: 80px 1.5fr 1fr 1.5fr 80px;
 }
 
 .day-date {
@@ -563,6 +543,48 @@ body:not(.is-mech-user) .day-row {
     color: #333;
 }
 
+.commission-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    width: 100%;
+    justify-content: center;
+}
+
+.commission-item {
+    background: #e0e0e0;
+    padding: 6px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.remove-commission-btn {
+    background: #aaa;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    line-height: 18px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.commission-add-controls {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.add-commission-btn {
+    padding: 0 16px;
+}
 .edit-controls {
     display: flex;
     flex-direction: column; /* stack PM and DUSK vertically */
@@ -688,6 +710,21 @@ body.dark-mode .edit-dialog-header h3 {
 body.dark-mode .close-dialog {
     color: #b0b0b0;
 }
+
+body.dark-mode .commission-item {
+    background: #444;
+}
+
+body.dark-mode .remove-commission-btn {
+    background: #666;
+}
+
+body.dark-mode .entry-select {
+    background: #404040;
+    color: #e0e0e0;
+    border-color: #555;
+}
+
 
 body.dark-mode .close-dialog:hover {
     background: #333;
@@ -818,6 +855,107 @@ body.dark-mode .save-btn:hover {
     .save-btn {
         padding: 10px 20px;
         font-size: 14px;
+    }
+}
+
+/* User Menu Overlay */
+.overlay-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.overlay-menu:not(.hidden) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.overlay-menu-content {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    width: 90%;
+    max-width: 300px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+
+.overlay-menu:not(.hidden) .overlay-menu-content {
+    transform: scale(1);
+}
+
+.overlay-menu-content h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 22px;
+    color: #333;
+}
+
+.theme-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.theme-btn {
+    padding: 10px;
+    border: 1px solid #ddd;
+    background: #f9f9f9;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.theme-btn.active {
+    background: #2196F3;
+    color: white;
+    border-color: #2196F3;
+}
+
+.menu-logout-btn {
+    width: 100%;
+    padding: 12px;
+    background: #e53935;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+body.dark-mode .overlay-menu-content {
+    background: #2a2a2a;
+    color: #e0e0e0;
+}
+
+body.dark-mode .overlay-menu-content h3 {
+    color: #e0e0e0;
+}
+
+body.dark-mode .theme-btn {
+    background: #404040;
+    color: #e0e0e0;
+    border-color: #555;
+}
+
+body.dark-mode .theme-btn.active {
+    background: #3498db;
+    border-color: #3498db;
     }
 }
 
@@ -1024,7 +1162,7 @@ body.dark-mode .action-section {
     
     .grid-header,
     .day-row {
-        grid-template-columns: 60px 1fr 1fr 1fr 80px;
+        grid-template-columns: 40px 1fr 1fr 1fr 1fr 60px;
         font-size: 11px;
     }
     

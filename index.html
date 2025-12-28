@@ -40,12 +40,8 @@
             <div class="header-content">
                 <h1 id="headerTitle">Payroll Tracker</h1>
                 <div class="header-controls">
-                    <button id="logoutBtn" class="clear-cache-btn" aria-label="Logout">
-                        🚪
-                    </button>
-                    <button id="darkModeToggle" class="dark-mode-toggle" aria-label="Toggle dark mode">
-                        <span class="dark-icon">🌙</span>
-                        <span class="light-icon">☀️</span>
+                    <button id="userMenuBtn" class="clear-cache-btn" aria-label="Open user menu">
+                        👤
                     </button>
                 </div>
             </div>
@@ -78,6 +74,13 @@
                 </div>
             </div>
             
+            <div class="input-row">
+                <select id="commissionType" class="entry-select">
+                    <option value="">-- Select Commission --</option>
+                </select>
+                <button class="entry-btn" data-type="commission">Add Commission</button>
+            </div>
+
             <div class="input-row mech-only">
                 <button class="entry-btn" data-type="amenity">Mech overtime</button>
                 <button class="quantity-btn" data-action="add" data-type="amenity">+0.25</button>
@@ -101,6 +104,7 @@
                         <div class="header-cell">Date</div>
                         <div class="header-cell">PM DUSK</div>
                         <div class="header-cell">Overtime</div>
+                        <div class="header-cell">Commission</div>
                         <div class="header-cell mech-only">Mech overtime</div>
                         <div class="header-cell">Actions</div>
                     </div>
@@ -144,6 +148,18 @@
                         <button class="plus">+</button>
                     </div>
                 </div>
+                <div class="edit-group">
+                    <label>Commissions</label>
+                    <div id="editCommissionsList" class="commission-list">
+                        <!-- Commission items will be rendered here by JS -->
+                    </div>
+                    <div class="commission-add-controls">
+                        <select id="editCommissionType" class="entry-select">
+                            <option value="">-- Add Commission --</option>
+                        </select>
+                        <button id="addCommissionBtn" class="edit-btn">Add</button>
+                    </div>
+                </div>
                 <div class="edit-group mech-only">
                     <label>Mech overtime</label>
                     <div class="number-input">
@@ -157,6 +173,19 @@
                 <button class="cancel-btn">Cancel</button>
                 <button class="save-btn">Save</button>
             </div>
+        </div>
+    </div>
+
+    <!-- User Menu Overlay -->
+    <div id="userMenuOverlay" class="overlay-menu hidden">
+        <div class="overlay-menu-content">
+            <h3>Settings</h3>
+            <div class="theme-options">
+                <button class="theme-btn" data-theme="light">Light</button>
+                <button class="theme-btn" data-theme="dark">Dark</button>
+                <button class="theme-btn" data-theme="auto">Auto</button>
+            </div>
+            <button id="menuLogoutBtn" class="menu-logout-btn">Logout</button>
         </div>
     </div>
 

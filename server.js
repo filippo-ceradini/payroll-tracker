@@ -19,6 +19,7 @@ async function connectDB() {
         await client.connect();
         db = client.db(); // Use default database from connection string
         console.log('Connected to MongoDB');
+        await seedCommissions(); // Seed commissions if collection is empty
 
     } catch (err) {
         console.error('Failed to connect to MongoDB', err);
@@ -47,7 +48,37 @@ function authenticateToken(req, res, next) {
     });
 }
 
+async function seedCommissions() {
+    const commissionsCollection = db.collection('commissions');
+    const count = await commissionsCollection.countDocuments();
+
+    if (count === 0) {
+        console.log('Seeding "commissions" collection...');
+        const commissionData = {
+            //'AM': { description: 'MORNING DIVE', price: 30, commission: 6 },
+            //'WEEKEND': { description: 'WEEKEND DIVE', price: 40, commission: 8 }
+        };
+        const documents = Object.entries(commissionData).map(([code, data]) => ({
+            _id: code,
+            ...data
+        }));
+        await commissionsCollection.insertMany(documents);
+        console.log('Commissions seeded successfully.');
+    }
+}
+
 // --- API Routes ---
+
+// Get commission data from the database
+app.get('/api/commissions', authenticateToken, async (req, res) => {
+    const commissionsArray = await req.db.collection('commissions').find({}).toArray();
+    // Convert array of documents back to an object keyed by _id for the frontend
+    const commissionData = commissionsArray.reduce((acc, item) => {
+        acc[item._id] = { description: item.description, price: item.price, commission: item.commission };
+        return acc;
+    }, {});
+    res.json(commissionData);
+});
 
 // Login
 app.post('/api/login', async (req, res) => {

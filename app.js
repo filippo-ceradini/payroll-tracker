@@ -1,3 +1,5 @@
+let COMMISSION_DATA = {};
+
 // State management
 let state = {
     currentStartDate: new Date(),
@@ -8,6 +10,7 @@ let state = {
         'overtime': 0,
         'amenity': 0
     },
+    selectedCommission: '',
     daysData: {}
 };
 
@@ -76,7 +79,7 @@ async function handleLogin(e) {
     }
 }
 
-function initializeApp(username) {
+async function initializeApp(username) {
     updateHeader(username);
     
     // Check if user is Filippo (case-insensitive) to show Mech features
@@ -86,6 +89,8 @@ function initializeApp(username) {
         document.body.classList.remove('is-mech-user');
     }
 
+    await loadCommissionData();
+    populateCommissionDropdowns(); // Must be called after data is loaded
     loadFromStorage();
     initializeDarkMode();
     renderDays();
@@ -147,12 +152,81 @@ function updateHeader(username) {
     }
 }
 
+async function loadCommissionData() {
+    try {
+        const response = await fetch('/api/commissions', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        });
+        if (!response.ok) {
+            throw new Error('Failed to load commission data');
+        }
+        COMMISSION_DATA = await response.json();
+    } catch (error) {
+        console.error('Commission Load Error:', error);
+        alert('Could not load commission data from the server. Please check the server configuration.');
+    }
+}
+
+function populateCommissionDropdowns() {
+    const commissionSelects = document.querySelectorAll('#commissionType, #editCommissionType');
+    commissionSelects.forEach(select => {
+        // Clear existing options except the first one
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+        for (const code in COMMISSION_DATA) {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = `${COMMISSION_DATA[code].description} ($${COMMISSION_DATA[code].commission})`;
+            select.appendChild(option);
+        }
+    });
+}
+
 function setupEventListeners() {
-    document.getElementById('logoutBtn').addEventListener('click', () => {
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenuOverlay = document.getElementById('userMenuOverlay');
+    const menuLogoutBtn = document.getElementById('menuLogoutBtn');
+
+    // Open user menu
+    userMenuBtn.addEventListener('click', () => {
+        userMenuOverlay.classList.remove('hidden');
+        updateActiveThemeButton();
+    });
+
+    // Close user menu when clicking on the background
+    userMenuOverlay.addEventListener('click', (e) => {
+        if (e.target === userMenuOverlay) {
+            userMenuOverlay.classList.add('hidden');
+        }
+    });
+
+    // Logout button inside menu
+    menuLogoutBtn.addEventListener('click', () => {
         localStorage.removeItem('loggedInUser');
         localStorage.removeItem('authToken');
         checkLoginState();
     });
+
+    // Theme selection buttons
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const theme = btn.dataset.theme;
+            localStorage.setItem('theme', theme);
+            applyTheme(theme);
+            updateActiveThemeButton();
+            // Optional: close menu after selection
+            // userMenuOverlay.classList.add('hidden');
+        });
+    });
+
+    document.getElementById('commissionType').addEventListener('change', (e) => {
+        state.selectedCommission = e.target.value;
+    });
+
+    // Update commission entry button listener to use its own handler
+    const commissionBtn = document.querySelector('.entry-btn[data-type="commission"]');
+    if (commissionBtn) commissionBtn.addEventListener('click', handleAddCommissionClick);
 
     // Quantity buttons
     document.querySelectorAll('.quantity-btn').forEach(btn => {
@@ -174,7 +248,10 @@ function setupEventListeners() {
 
     // Add and Entry buttons
     document.querySelectorAll('.entry-btn').forEach(btn => {
-        btn.addEventListener('click', handleAddClick);
+        // Exclude commission button as it has its own handler
+        if (btn.dataset.type !== 'commission') {
+            btn.addEventListener('click', handleAddClick);
+        }
     });
 
     // Navigation buttons
@@ -224,8 +301,6 @@ function setupEventListeners() {
     // Send button
     document.getElementById('sendBtn').addEventListener('click', handleSend);
     
-    // Dark mode toggle
-    document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
 }
 
 function handleQuantityChange(e) {
@@ -263,7 +338,8 @@ function handleAddClick(e) {
         state.daysData[dateKey] = {
             'pm-dusk': { pm: 0, dusk: 0 },
             'overtime': 0,
-            'amenity': 0
+            'amenity': 0,
+            'commissions': []
         };
     }
 
@@ -278,6 +354,36 @@ function handleAddClick(e) {
     state.quantities[type] = 0;
     updateQuantityDisplay(type);
     
+    renderDays();
+    saveToStorage();
+}
+
+function handleAddCommissionClick() {
+    const commission = state.selectedCommission;
+    if (!commission) {
+        alert('Please select a commission type first');
+        return;
+    }
+
+    const dateKey = formatDateKey(state.currentDate);
+    if (!state.daysData[dateKey]) {
+        state.daysData[dateKey] = {
+            'pm-dusk': { pm: 0, dusk: 0 },
+            'overtime': 0,
+            'amenity': 0,
+            'commissions': []
+        };
+    }
+    // Ensure commissions array exists for older data structures
+    if (!state.daysData[dateKey].commissions) {
+        state.daysData[dateKey].commissions = [];
+    }
+
+    state.daysData[dateKey].commissions.push(commission);
+
+    document.getElementById('commissionType').value = '';
+    state.selectedCommission = '';
+
     renderDays();
     saveToStorage();
 }
@@ -302,7 +408,8 @@ function renderDays() {
         const dayData = state.daysData[dateKey] || {
             'pm-dusk': { pm: 0, dusk: 0 },
             'overtime': 0,
-            'amenity': 0
+            'amenity': 0,
+            'commissions': []
         };
 
         // Handle legacy data format
@@ -323,6 +430,8 @@ function renderDays() {
             pmDuskDisplay = `PM ${dayData['pm-djsk']}`;
         }
 
+        const commissionsDisplay = (dayData.commissions || []).join(', ');
+
         const row = document.createElement('div');
         row.className = 'day-row';
 
@@ -335,6 +444,7 @@ function renderDays() {
             <div class="day-cell day-date">${formatDate(day)}</div>
             <div class="day-cell day-value">${pmDuskDisplay}</div>
             <div class="day-cell day-value">${dayData['overtime']}</div>
+            <div class="day-cell day-value">${commissionsDisplay}</div>
             <div class="day-cell day-value mech-only">${dayData['amenity']}</div>
             <div class="day-cell">
                 <button class="edit-btn" data-date-key="${dateKey}">Edit</button>
@@ -421,8 +531,9 @@ function handleSend() {
             const duskCount = pmDuskData.dusk || 0;
             const overtime = dayData['overtime'] || 0;
             const amenity = dayData['amenity'] || 0;
+            const commissions = dayData.commissions || [];
 
-            const hasData = (pmCount > 0 || duskCount > 0 || overtime > 0 || amenity > 0);
+            const hasData = (pmCount > 0 || duskCount > 0 || overtime > 0 || amenity > 0 || commissions.length > 0);
 
             if (hasData) {
                 let pmDuskDisplay = '';
@@ -437,9 +548,11 @@ function handleSend() {
                 dataToSend.push({
                     date: formatDate(day),
                     pmDuskDisplay: pmDuskDisplay,
-                    pmDuskTotal: pmCount + duskCount,
+                    pmDuskTotal: pmCount + duskCount, // For summary
                     overtime: overtime,
-                    amenity: amenity
+                    amenity: amenity,
+                    commissions: commissions,
+                    commissionCodes: commissions // Keep codes for summary
                 });
             }
         }
@@ -450,18 +563,23 @@ function handleSend() {
         return;
     }
 
+    if (!confirm(`You are about to generate a report for ${dataToSend.length} day(s). Continue?`)) {
+        return;
+    }
+
     const subject = encodeURIComponent('Payroll Report - ' + formatCurrentDate(new Date()));
     
     let body = 'Payroll Report\n\n';
     body += 'Date Range: ' + document.getElementById('dateRange').textContent + '\n\n';
     
-    body += `${padEnd('Date', 12)}| ${padEnd('PM/DUSK', 15)}| ${padEnd('Overtime', 10)}`;
+    body += `${padEnd('Date', 12)}| ${padEnd('PM/DUSK', 15)}| ${padEnd('Overtime', 10)}| ${padEnd('Commission', 20)}`;
     if (isMechUser) body += `| ${padEnd('Mech OT', 10)}`;
     body += '\n';
-    body += '-'.repeat(isMechUser ? 55 : 42) + '\n';
+    body += '-'.repeat(isMechUser ? 80 : 68) + '\n';
     
     dataToSend.forEach(item => {
-        body += `${padEnd(item.date, 12)}| ${padEnd(item.pmDuskDisplay, 15)}| ${padEnd(item.overtime.toFixed(2), 10)}`;
+        const commissionText = (item.commissionCodes || []).join(', ');
+        body += `${padEnd(item.date, 12)}| ${padEnd(item.pmDuskDisplay, 15)}| ${padEnd(item.overtime.toFixed(2), 10)}| ${padEnd(commissionText, 20)}`;
         if (isMechUser) body += `| ${padEnd(item.amenity.toFixed(2), 10)}`;
         body += '\n';
     });
@@ -469,6 +587,28 @@ function handleSend() {
     body += '\n\nTotal Summary:\n';
     body += 'PM/DUSK: ' + dataToSend.reduce((sum, item) => sum + item.pmDuskTotal, 0) + '\n';
     body += 'Overtime: ' + (dataToSend.reduce((sum, item) => sum + item.overtime, 0)).toFixed(2) + '\n';
+
+    const commissionSummary = dataToSend.reduce((summary, item) => {
+        (item.commissionCodes || []).forEach(code => {
+            if (COMMISSION_DATA[code]) {
+                summary.totalValue += COMMISSION_DATA[code].commission;
+                summary.breakdown[code] = (summary.breakdown[code] || 0) + 1;
+            }
+        });
+        return summary;
+    }, { totalValue: 0, breakdown: {} });
+
+    if (commissionSummary.totalValue > 0) {
+        body += `\nTotal Commission: $${commissionSummary.totalValue.toFixed(2)}\n`;
+        if (Object.keys(commissionSummary.breakdown).length > 0) {
+            body += 'Commission Breakdown:\n';
+            for (const [code, count] of Object.entries(commissionSummary.breakdown)) {
+                const description = COMMISSION_DATA[code]?.description || code;
+                body += `- ${description}: ${count}\n`;
+            }
+        }
+    }
+
     if (isMechUser) {
         body += 'Mech overtime: ' + (dataToSend.reduce((sum, item) => sum + item.amenity, 0)).toFixed(2) + '\n';
     }
@@ -490,7 +630,8 @@ async function saveToStorage() {
         currentStartDate: state.currentStartDate.toISOString(),
         pmDuskMode: state.pmDuskMode,
         daysData: state.daysData,
-        quantities: state.quantities
+        quantities: state.quantities,
+        selectedCommission: state.selectedCommission
     };
 
     // 1. Save locally (Offline First)
@@ -551,6 +692,7 @@ async function loadFromStorage() {
         state.pmDuskMode = loadedData.pmDuskMode || 'pm';
         state.daysData = loadedData.daysData || {};
         state.quantities = loadedData.quantities || { 'pm-dusk': 0, 'overtime': 0, 'amenity': 0 };
+        state.selectedCommission = loadedData.selectedCommission || '';
     }
 
     // Update quantity displays from loaded state
@@ -559,19 +701,48 @@ async function loadFromStorage() {
 }
 
 function initializeDarkMode() {
-    const isDarkMode = localStorage.getItem('darkMode') === 'true';
-    if (isDarkMode) {
+    const savedTheme = localStorage.getItem('theme') || 'auto';
+    applyTheme(savedTheme);
+
+    // Listen for changes in system preference
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        const currentTheme = localStorage.getItem('theme') || 'auto';
+        if (currentTheme === 'auto') {
+            applyTheme('auto');
+        }
+    });
+}
+
+function applyTheme(theme) {
+    if (theme === 'dark') {
         document.body.classList.add('dark-mode');
+    } else if (theme === 'light') {
+        document.body.classList.remove('dark-mode');
+    } else { // 'auto'
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
     }
 }
 
+function updateActiveThemeButton() {
+    const savedTheme = localStorage.getItem('theme') || 'auto';
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.theme === savedTheme) {
+            btn.classList.add('active');
+        }
+    });
+}
 function showEditDialog(dateKey) {
     const dialog = document.getElementById('editDialog');
     if (!dialog) return;
 
     // ensure day data exists
     if (!state.daysData[dateKey]) {
-        state.daysData[dateKey] = { 'pm-dusk': { pm: 0, dusk: 0 }, 'overtime': 0, 'amenity': 0 };
+        state.daysData[dateKey] = { 'pm-dusk': { pm: 0, dusk: 0 }, 'overtime': 0, 'amenity': 0, 'commissions': [] };
     }
 
     const dayData = state.daysData[dateKey];
@@ -600,6 +771,11 @@ function showEditDialog(dateKey) {
     document.getElementById('overtimeValue').value = dayData['overtime'] || 0;
     document.getElementById('amenityValue').value = dayData['amenity'] || 0;
 
+    // Ensure commissions array exists for old data
+    if (!dayData.commissions) {
+        dayData.commissions = [];
+    }
+
     // Add event listeners for the switch
     pmBtn.onclick = () => { pmBtn.classList.add('active'); duskBtn.classList.remove('active'); };
     duskBtn.onclick = () => { duskBtn.classList.add('active'); pmBtn.classList.remove('active'); };
@@ -609,6 +785,19 @@ function showEditDialog(dateKey) {
 
     // wire up number input controls
     setupNumberInputs(dialog);
+
+    // Render commissions for the dialog
+    renderEditCommissions(dateKey);
+
+    // Add listener for commission add button inside dialog
+    dialog.querySelector('#addCommissionBtn').onclick = () => {
+        const commissionType = dialog.querySelector('#editCommissionType').value;
+        if (commissionType) {
+            state.daysData[editingDateKey].commissions.push(commissionType);
+            renderEditCommissions(editingDateKey); // re-render the list
+            saveToStorage(); // save immediately
+        }
+    };
 
     // open
     dialog.classList.add('open');
@@ -621,6 +810,30 @@ function showEditDialog(dateKey) {
         saveEditDialog(editingDateKey);
         closeEditDialog();
     };
+}
+
+function renderEditCommissions(dateKey) {
+    const listEl = document.getElementById('editCommissionsList');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    const commissions = state.daysData[dateKey]?.commissions || [];
+
+    commissions.forEach((commission, index) => {
+        const commissionCode = commission; // It's a code
+        const description = COMMISSION_DATA[commissionCode]?.description || commissionCode;
+        const itemEl = document.createElement('div');
+        itemEl.className = 'commission-item';
+        itemEl.innerHTML = `
+            <span>${description}</span>
+            <button class="remove-commission-btn" data-index="${index}">&times;</button>
+        `;
+        itemEl.querySelector('.remove-commission-btn').onclick = () => {
+            state.daysData[dateKey].commissions.splice(index, 1);
+            renderEditCommissions(dateKey); // re-render
+            saveToStorage(); // save
+        };
+        listEl.appendChild(itemEl);
+    });
 }
 
 function setupNumberInputs(container) {
@@ -674,23 +887,18 @@ function saveEditDialog(dateKey) {
     const overtimeValue = parseFloat(document.getElementById('overtimeValue').value) || 0;
     const amenityValue = parseFloat(document.getElementById('amenityValue').value) || 0;
 
-    state.daysData[dateKey] = {
-        'pm-dusk': {
-            pm: activeMode === 'pm' ? pmDuskValue : 0,
-            dusk: activeMode === 'dusk' ? pmDuskValue : 0
-        },
-        'overtime': overtimeValue,
-        'amenity': amenityValue
+    const dayData = state.daysData[dateKey];
+
+    dayData['pm-dusk'] = {
+        pm: activeMode === 'pm' ? pmDuskValue : 0,
+        dusk: activeMode === 'dusk' ? pmDuskValue : 0
     };
+    dayData['overtime'] = overtimeValue;
+    dayData['amenity'] = amenityValue;
+    // Commissions are preserved as they are edited directly on the state object
 
     saveToStorage();
     renderDays();
-}
-
-function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    const isDarkMode = document.body.classList.contains('dark-mode');
-    localStorage.setItem('darkMode', isDarkMode.toString());
 }
 
 // --- Helper Functions (Exported for Testing) ---
