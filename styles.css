@@ -956,8 +956,8 @@ body.dark-mode .theme-btn {
 body.dark-mode .theme-btn.active {
     background: #3498db;
     border-color: #3498db;
-    }
 }
+
 
 .action-section {
     padding: 20px;
