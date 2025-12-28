@@ -4,11 +4,16 @@
     box-sizing: border-box;
 }
 
+html {
+    background-color: #1a1a1a; /* Prevent white background during overscroll */
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     padding: 20px;
+    padding-top: calc(20px + env(safe-area-inset-top)); /* Handle iPhone notch */
     touch-action: manipulation; /* Disable double-tap to zoom on touch devices */
     color: #333;
 }
@@ -1161,6 +1166,38 @@ body.dark-mode #periodTotalValue {
 
 body.dark-mode .action-section {
     background: #252525;
+}
+
+/* Admin View - Hide Actions Column */
+body.is-admin .header-cell:last-child,
+body.is-admin .day-cell:last-child {
+    display: none !important;
+}
+
+/* Admin Layout Adjustments - Desktop */
+body.is-admin .grid-header,
+body.is-admin .day-row {
+    /* Date | Overtime | Commission | Mech OT | Total */
+    grid-template-columns: 80px 0.6fr 1.6fr 0.6fr 0.6fr;
+}
+
+body.is-admin:not(.is-mech-user) .grid-header,
+body.is-admin:not(.is-mech-user) .day-row {
+    /* Date | Overtime | Commission | Total */
+    grid-template-columns: 80px 0.6fr 1.6fr 0.6fr;
+}
+
+/* Admin Layout Adjustments - Mobile */
+@media (max-width: 600px) {
+    body.is-admin .grid-header,
+    body.is-admin .day-row {
+        grid-template-columns: 40px 0.6fr 1.4fr 0.6fr 0.6fr;
+    }
+
+    body.is-admin:not(.is-mech-user) .grid-header,
+    body.is-admin:not(.is-mech-user) .day-row {
+        grid-template-columns: 40px 0.6fr 1.4fr 0.6fr;
+    }
 }
 
 /* Mobile responsive */

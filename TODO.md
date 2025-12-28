@@ -11,9 +11,9 @@
 ~~user button with login/logout and dark/light mode~~
 ~~access with multiview for user renita~~
 ~~fix logout modal~~
-add total column between commission and action for users except renita she  does not have action column
-add commission scheme for dusk and pm 
-add final total befor the send button
-hide send button
+~~add total column between commission and action for users except renita she  does not have action column~~
+~~add commission scheme for dusk and pm~~
+~~add final total befor the send button~~
+~~hide send button~~
 fix borders on iphone
 Improve the `handleSend` function (e.g., format the email better)

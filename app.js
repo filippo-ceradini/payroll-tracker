@@ -490,11 +490,12 @@ function renderDays() {
         const duskCommData = COMMISSION_DATA['DUSK'] || COMMISSION_DATA['dusk'];
         const pmTotal = pmCount * (pmCommData?.commission || 0);
         const duskTotal = duskCount * (duskCommData?.commission || 0);
+        const overtimeTotal = (dayData['overtime'] || 0) * 16;
 
         const dailyTotal = (dayData.commissions || []).reduce((sum, code) => {
             const comm = COMMISSION_DATA[code];
             return sum + (comm ? comm.commission : 0);
-        }, 0) + pmTotal + duskTotal;
+        }, 0) + pmTotal + duskTotal + overtimeTotal;
 
         periodTotal += dailyTotal;
         const row = document.createElement('div');
