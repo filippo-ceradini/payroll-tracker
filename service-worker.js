@@ -1,5 +1,5 @@
 // Use timestamp-based cache versioning for automatic updates
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v10';
 const CACHE_NAME = `payroll-tracker-${CACHE_VERSION}`;
 
 // Get base path from service worker location
@@ -58,46 +58,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For HTML requests, always try network first, then cache
-  const acceptHeader = event.request.headers.get('accept');
-  if (event.request.mode === 'navigate' || 
-      (acceptHeader && acceptHeader.includes('text/html'))) {
-    event.respondWith(
-      fetch(event.request, { cache: 'no-cache' })
-        .then((response) => {
-          // Clone and cache the response
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-          return response;
-        })
-        .catch(() => {
-          // If network fails, try cache
-          return caches.match(event.request).then((response) => {
-            return response || caches.match(BASE_PATH + 'index.html');
-          });
-        })
-    );
+  // Network-first for API requests (don't cache API responses)
+  if (event.request.url.includes('/api/')) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
-  // For other resources (CSS, JS, images), use network-first strategy
+  // Cache-First Strategy for App Shell (HTML, CSS, JS, Images)
   event.respondWith(
-    fetch(event.request, { cache: 'no-cache' })
-      .then((response) => {
-        // Only cache successful responses
-        if (response && response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+    caches.match(event.request)
+      .then((cachedResponse) => {
+        // Return cached response immediately if found
+        if (cachedResponse) {
+          return cachedResponse;
         }
-        return response;
-      })
-      .catch(() => {
-        // If network fails, try cache
-        return caches.match(event.request);
+
+        // If not in cache, fetch from network
+        return fetch(event.request)
+          .then((response) => {
+            // Cache valid responses for next time
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+            return response;
+          });
       })
   );
 });
@@ -121,4 +109,3 @@ self.addEventListener('activate', (event) => {
     })
   );
 });
-

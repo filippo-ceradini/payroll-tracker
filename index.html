@@ -13,13 +13,6 @@
     <link rel="apple-touch-icon" href="icon-192.svg">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <style>
-        /* Admin View Styles */
-        .is-admin .input-section { display: none !important; }
-        .is-admin .edit-btn { display: none !important; }
-        .is-admin .action-section { display: none !important; }
-        #admin-section { margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; }
-    </style>
 </head>
 <body>
     <!-- Login View -->
@@ -63,7 +56,7 @@
         <!-- Admin Section -->
         <div id="admin-section" class="hidden">
             <h3>Select User to View</h3>
-            <div id="userButtons" class="input-row" style="flex-wrap: wrap; justify-content: center;"></div>
+            <div id="userButtons" class="input-row"></div>
         </div>
 
         <div class="input-section">
@@ -72,37 +65,33 @@
                     <button class="switch-btn active" data-mode="pm">PM</button>
                     <button class="switch-btn" data-mode="dusk">DUSK</button>
                 </div>
-                <div class="quantity-display">
-                    <span class="quantity" data-type="pm-dusk">0</span>
-                    <button class="quantity-btn" data-action="remove" data-type="pm-dusk">-1</button>
-                </div>
+                <button class="quantity-btn" data-action="remove" data-type="pm-dusk">-1</button>
+                <span class="quantity" data-type="pm-dusk">0</span>
                 <button class="quantity-btn" data-action="add" data-type="pm-dusk">+1</button>
                 <button class="entry-btn" data-type="pm-dusk">Add</button>
             </div>
-            
+
             <div class="input-row">
-                <button class="entry-btn" data-type="overtime">ADD OVERTIME</button>
+                <span class="row-label">Overtime</span>
+                <button class="quantity-btn" data-action="remove" data-type="overtime">-0.25</button>
+                <span class="quantity" data-type="overtime">0</span>
                 <button class="quantity-btn" data-action="add" data-type="overtime">+0.25</button>
-                <div class="quantity-display">
-                    <span class="quantity" data-type="overtime">0</span>
-                    <button class="quantity-btn" data-action="remove" data-type="overtime">-0.25</button>
-                </div>
+                <button class="entry-btn" data-type="overtime">Add</button>
             </div>
-            
-            <div class="input-row">
+
+            <div class="input-row input-row-commission">
                 <select id="commissionType" class="entry-select">
                     <option value="">-- Select Commission --</option>
                 </select>
-                <button class="entry-btn" data-type="commission">Add Commission</button>
+                <button class="entry-btn" data-type="commission">Add</button>
             </div>
 
             <div class="input-row mech-only">
-                <button class="entry-btn" data-type="amenity">Mech overtime</button>
+                <span class="row-label">Mech Overtime</span>
+                <button class="quantity-btn" data-action="remove" data-type="amenity">-0.25</button>
+                <span class="quantity" data-type="amenity">0</span>
                 <button class="quantity-btn" data-action="add" data-type="amenity">+0.25</button>
-                <div class="quantity-display">
-                    <span class="quantity" data-type="amenity">0</span>
-                    <button class="quantity-btn" data-action="remove" data-type="amenity">-0.25</button>
-                </div>
+                <button class="entry-btn" data-type="amenity">Add</button>
             </div>
         </div>
 
@@ -121,7 +110,6 @@
                         <div class="header-cell">Commission</div>
                         <div class="header-cell mech-only">Mech overtime</div>
                         <div class="header-cell">Total</div>
-                        <div class="header-cell">Actions</div>
                     </div>
                     <div id="daysGrid" class="days-grid"></div>
                 </div>
@@ -208,46 +196,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="app.js"></script>
-    <script>
-        // Register service worker with correct scope
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                const swPath = './service-worker.js';
-                navigator.serviceWorker.register(swPath, { scope: './' })
-                    .then(reg => {
-                        console.log('Service Worker registered:', reg.scope);
-                        
-                        // Check for updates immediately and periodically
-                        reg.update();
-                        
-                        // Check for updates every 60 seconds
-                        setInterval(() => {
-                            reg.update();
-                        }, 60000);
-                        
-                        // Listen for service worker updates
-                        reg.addEventListener('updatefound', () => {
-                            const newWorker = reg.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New service worker available, prompt user to refresh
-                                    if (confirm('New version available! Reload to update?')) {
-                                        window.location.reload();
-                                    }
-                                }
-                            });
-                        });
-                    })
-                    .catch(err => console.log('Service Worker registration failed:', err));
-                
-                // Listen for service worker controller changes
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    // Reload when new service worker takes control
-                    window.location.reload();
-                });
-            });
-        }
-    </script>
 </body>
 </html>

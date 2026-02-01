@@ -109,39 +109,39 @@ header h1 {
 }
 
 .input-section {
-    padding: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto auto auto auto;
+    gap: 4px;
+    padding: 4px;
     background: #f5f5f5;
 }
 
-.input-row {
-    display: flex;
+.input-section > .input-row {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
     background: white;
-    padding: 8px;
+    padding: 5px 8px;
     border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Visual ordering: place the remove button to the left of the quantity
-   and the add button to the right without changing the HTML structure. */
-.input-row > .entry-btn { order: 1; }
-.input-row > .quantity-display { order: 2; }
-.input-row > .quantity-btn[data-action="add"] { order: 3; }
-
-.quantity-display {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.input-row-commission .entry-select {
+    grid-column: 1 / 5;
 }
 
-/* Inside the quantity-display, show remove (-1) before the number */
-.quantity-display .quantity-btn[data-action="remove"] { order: 1; }
-.quantity-display .quantity { order: 2; }
+.row-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    padding: 0 8px;
+}
+
+body.dark-mode .row-label {
+    color: #ccc;
+}
 
 .entry-btn, .user-select-btn {
-    flex: 1;
     padding: 8px 12px;
     background: #2196F3;
     color: white;
@@ -159,7 +159,6 @@ header h1 {
     background: #e0e0e0;
     border-radius: 8px;
     padding: 4px;
-    flex: 1;
 }
 
 .switch-btn {
@@ -203,7 +202,6 @@ body.dark-mode .switch-btn.active {
 }
 
 .entry-select {
-    flex: 1;
     padding: 8px 12px;
     background: white;
     color: #333;
@@ -250,18 +248,12 @@ body.dark-mode .switch-btn.active {
     background: rgba(244, 67, 54, 0.18);
 }
 
-.quantity-display {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
 .quantity {
     /* prominent pill-style number to stand out from the +/- buttons */
     font-size: 16px;
     font-weight: 700;
-    min-width: 36px;
-    padding: 6px 10px;
+    width: 60px;
+    padding: 6px 0;
     text-align: center;
     color: #0b57a4; /* accent color */
     background: linear-gradient(180deg, #ffffff 0%, #f3f7fb 100%);
@@ -358,15 +350,13 @@ body.dark-mode .switch-btn.active {
     padding: 8px;
     text-align: center;
     border-right: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .header-cell:last-child {
     border-right: none;
-}
-
-.days-grid {
-    display: flex;
-    flex-direction: column;
 }
 
 .day-row {
@@ -410,14 +400,14 @@ body.dark-mode .switch-btn.active {
 
 /* Shared grid column layout for header and rows */
 .grid-header {
-    /* Date | Overtime | Commission (Merged) | Mech OT | Total | Actions */
-    grid-template-columns: 80px 0.6fr 1.6fr 0.6fr 0.6fr 80px;
-    align-items: center;
+    /* Date | Overtime | Commission (Merged) | Mech OT | Total */
+    grid-template-columns: 100px 0.6fr 1.6fr 0.6fr 0.6fr;
+    align-items: stretch;
 }
 
 .day-row {
-    grid-template-columns: 80px 0.6fr 1.6fr 0.6fr 0.6fr 80px;
-    align-items: center;
+    grid-template-columns: 100px 0.6fr 1.6fr 0.6fr 0.6fr;
+    align-items: stretch;
 }
 
 /* --- Mech User Visibility --- */
@@ -427,8 +417,8 @@ body:not(.is-mech-user) .mech-only {
 }
 body:not(.is-mech-user) .grid-header,
 body:not(.is-mech-user) .day-row {
-    /* Date | Overtime | Commission | Total | Actions */
-    grid-template-columns: 80px 0.6fr 1.6fr 0.6fr 80px;
+    /* Date | Overtime | Commission | Total */
+    grid-template-columns: 100px 0.6fr 1.6fr 0.6fr;
 }
 
 .day-date {
@@ -808,7 +798,7 @@ body.dark-mode .save-btn:hover {
     
     .grid-header,
     .day-row {
-        grid-template-columns: 50px 0.6fr 1.6fr 0.6fr 0.6fr 60px;
+        grid-template-columns: 50px 0.6fr 1.6fr 0.6fr 0.6fr;
         font-size: 11px;
     }
     
@@ -1032,6 +1022,9 @@ body.dark-mode header {
 }
 
 .date-section {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
     padding: 8px 20px;
     background: #f8f9fa;
     border-bottom: 1px solid rgba(0,0,0,0.08);
@@ -1061,7 +1054,6 @@ body.dark-mode .input-section {
 
 body.dark-mode .input-row {
     background: #2a2a2a;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 body.dark-mode .entry-btn, body.dark-mode .user-select-btn {
@@ -1168,23 +1160,42 @@ body.dark-mode .action-section {
     background: #252525;
 }
 
-/* Admin View - Hide Actions Column */
-body.is-admin .header-cell:last-child,
-body.is-admin .day-cell:last-child {
-    display: none !important;
+/* Admin View Styles */
+.is-admin .input-section { display: none !important; }
+.is-admin .action-section { display: none !important; }
+
+#admin-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+#userButtons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.user-select-btn {
+    margin: 5px;
+}
+
+.day-row:not(.read-only) {
+    cursor: pointer;
 }
 
 /* Admin Layout Adjustments - Desktop */
 body.is-admin .grid-header,
 body.is-admin .day-row {
     /* Date | Overtime | Commission | Mech OT | Total */
-    grid-template-columns: 80px 0.6fr 1.6fr 0.6fr 0.6fr;
+    grid-template-columns: 100px 0.6fr 1.6fr 0.6fr 0.6fr;
 }
 
 body.is-admin:not(.is-mech-user) .grid-header,
 body.is-admin:not(.is-mech-user) .day-row {
     /* Date | Overtime | Commission | Total */
-    grid-template-columns: 80px 0.6fr 1.6fr 0.6fr;
+    grid-template-columns: 100px 0.6fr 1.6fr 0.6fr;
 }
 
 /* Admin Layout Adjustments - Mobile */
@@ -1230,7 +1241,7 @@ body.is-admin:not(.is-mech-user) .day-row {
     
     .grid-header,
     .day-row {
-        grid-template-columns: 40px 0.6fr 1.4fr 0.6fr 0.6fr 50px;
+        grid-template-columns: 40px 0.6fr 1.4fr 0.6fr 0.6fr;
         font-size: 11px;
     }
     

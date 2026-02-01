@@ -100,7 +100,11 @@ async function initializeApp(username) {
 
     await loadCommissionData();
     populateCommissionDropdowns(); // Must be called after data is loaded
-    loadFromStorage();
+    await loadFromStorage();
+    
+    // Check for unsaved data and try to sync
+    checkAndSyncPendingData(username);
+    
     initializeDarkMode();
     renderDays();
     setupEventListeners();
@@ -125,7 +129,6 @@ async function setupAdminView() {
                 const btn = document.createElement('button');
                 btn.textContent = u;
                 btn.className = 'user-select-btn';
-                btn.style.margin = '5px';
                 btn.onclick = () => loadUserReadOnly(u);
                 container.appendChild(btn);
             });
@@ -242,7 +245,10 @@ function populateCommissionDropdowns() {
         while (select.options.length > 1) {
             select.remove(1);
         }
-        for (const code in COMMISSION_DATA) {
+        const sortedCodes = Object.keys(COMMISSION_DATA).sort((a, b) =>
+            (COMMISSION_DATA[a].description || a).localeCompare(COMMISSION_DATA[b].description || b, undefined, { sensitivity: 'base' })
+        );
+        for (const code of sortedCodes) {
             const option = document.createElement('option');
             option.value = code;
             option.textContent = `${COMMISSION_DATA[code].description} ($${COMMISSION_DATA[code].commission})`;
@@ -369,6 +375,12 @@ function setupEventListeners() {
 
     // Send button
     document.getElementById('sendBtn').addEventListener('click', handleSend);
+    
+    // Listen for network recovery to sync pending data
+    window.addEventListener('online', () => {
+        const username = localStorage.getItem('loggedInUser');
+        if (username) checkAndSyncPendingData(username);
+    });
     
 }
 
@@ -512,19 +524,15 @@ function renderDays() {
             <div class="day-cell day-value">${mergedCommissions}</div>
             <div class="day-cell day-value mech-only">${dayData['amenity']}</div>
             <div class="day-cell day-value">$${dailyTotal.toFixed(2)}</div>
-            <div class="day-cell">
-                ${!state.isReadOnly ? `<button class="edit-btn" data-date-key="${dateKey}">Edit</button>` : ''}
-            </div>
         `;
 
-        // Add click handler for edit button
-        if (!state.isReadOnly) {
-            const editBtn = row.querySelector('.edit-btn');
-            if (editBtn) {
-                editBtn.addEventListener('click', () => {
-                    showEditDialog(dateKey);
-                });
-            }
+        // Click row to open edit dialog
+        if (state.isReadOnly) {
+            row.classList.add('read-only');
+        } else {
+            row.addEventListener('click', () => {
+                showEditDialog(dateKey);
+            });
         }
 
         daysGrid.appendChild(row);
@@ -617,7 +625,7 @@ function handleSend() {
     days.forEach(day => {
         const dateKey = formatDateKey(day);
         const dayData = state.daysData[dateKey];
-        
+
         if (dayData) {
             const pmDuskData = dayData['pm-dusk'] || { pm: 0, dusk: 0 };
             const pmCount = pmDuskData.pm || 0;
@@ -643,11 +651,11 @@ function handleSend() {
                     pmDuskDisplay: pmDuskDisplay,
                     pmCount: pmCount,
                     duskCount: duskCount,
-                    pmDuskTotal: pmCount + duskCount, // For summary
+                    pmDuskTotal: pmCount + duskCount,
                     overtime: overtime,
                     amenity: amenity,
                     commissions: commissions,
-                    commissionCodes: commissions // Keep codes for summary
+                    commissionCodes: commissions
                 });
             }
         }
@@ -662,75 +670,122 @@ function handleSend() {
         return;
     }
 
-    const subject = encodeURIComponent('Payroll Report - ' + formatCurrentDate(new Date()));
-    
-    let body = 'Payroll Report\n\n';
-    body += 'Date Range: ' + document.getElementById('dateRange').textContent + '\n\n';
-    
-    body += `${padEnd('Date', 12)}| ${padEnd('PM/DUSK', 15)}| ${padEnd('Overtime', 10)}| ${padEnd('Commission', 20)}`;
-    if (isMechUser) body += `| ${padEnd('Mech OT', 10)}`;
-    body += '\n';
-    body += '-'.repeat(isMechUser ? 80 : 68) + '\n';
-    
-    dataToSend.forEach(item => {
-        const commissionText = (item.commissionCodes || []).join(', ');
-        body += `${padEnd(item.date, 12)}| ${padEnd(item.pmDuskDisplay, 15)}| ${padEnd(item.overtime.toFixed(2), 10)}| ${padEnd(commissionText, 20)}`;
-        if (isMechUser) body += `| ${padEnd(item.amenity.toFixed(2), 10)}`;
+    // Capture screenshot of the payroll table
+    const gridContainer = document.querySelector('.grid-container');
+    const totalSection = document.querySelector('.total-section');
+    const dateRange = document.getElementById('dateRange');
+
+    // Create a wrapper to capture the table with the date range and total
+    const captureWrapper = document.createElement('div');
+    captureWrapper.style.cssText = 'position:absolute;left:-9999px;top:0;padding:16px;background:#1a1a1a;';
+
+    // Clone the elements we want in the screenshot
+    const dateRangeClone = dateRange.cloneNode(true);
+    dateRangeClone.style.cssText = 'text-align:center;color:#fff;margin-bottom:12px;font-size:18px;';
+    captureWrapper.appendChild(dateRangeClone);
+
+    const gridClone = gridContainer.cloneNode(true);
+    captureWrapper.appendChild(gridClone);
+
+    const totalClone = totalSection.cloneNode(true);
+    totalClone.style.cssText = 'text-align:center;color:#fff;margin-top:12px;font-size:16px;font-weight:bold;';
+    captureWrapper.appendChild(totalClone);
+
+    document.body.appendChild(captureWrapper);
+
+    // Use html2canvas to capture the screenshot
+    html2canvas(captureWrapper, {
+        backgroundColor: '#1a1a1a',
+        scale: 2,
+        useCORS: true
+    }).then(canvas => {
+        document.body.removeChild(captureWrapper);
+
+        // Download the screenshot image
+        const link = document.createElement('a');
+        const dateStr = formatCurrentDate(new Date()).replace(/\s/g, '-');
+        link.download = `payroll-report-${dateStr}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        // Build and open mailto link
+        const subject = encodeURIComponent('Payroll Report - ' + formatCurrentDate(new Date()));
+
+        let body = 'Payroll Report\n\n';
+        body += 'Date Range: ' + document.getElementById('dateRange').textContent + '\n\n';
+        body += '(Screenshot attached separately)\n\n';
+
+        body += `${padEnd('Date', 12)}| ${padEnd('PM/DUSK', 15)}| ${padEnd('Overtime', 10)}| ${padEnd('Commission', 20)}`;
+        if (isMechUser) body += `| ${padEnd('Mech OT', 10)}`;
         body += '\n';
-    });
-    
-    body += '\n\nTotal Summary:\n';
-    body += 'PM/DUSK: ' + dataToSend.reduce((sum, item) => sum + item.pmDuskTotal, 0) + '\n';
-    body += 'Overtime: ' + (dataToSend.reduce((sum, item) => sum + item.overtime, 0)).toFixed(2) + '\n';
+        body += '-'.repeat(isMechUser ? 80 : 68) + '\n';
 
-    const commissionSummary = dataToSend.reduce((summary, item) => {
-        (item.commissionCodes || []).forEach(code => {
-            if (COMMISSION_DATA[code]) {
-                summary.totalValue += COMMISSION_DATA[code].commission;
-                summary.breakdown[code] = (summary.breakdown[code] || 0) + 1;
-            }
+        dataToSend.forEach(item => {
+            const commissionText = (item.commissionCodes || []).join(', ');
+            body += `${padEnd(item.date, 12)}| ${padEnd(item.pmDuskDisplay, 15)}| ${padEnd(item.overtime.toFixed(2), 10)}| ${padEnd(commissionText, 20)}`;
+            if (isMechUser) body += `| ${padEnd(item.amenity.toFixed(2), 10)}`;
+            body += '\n';
         });
-        
-        // Add PM/DUSK to breakdown
-        if (item.pmCount > 0) {
-            const code = COMMISSION_DATA['PM'] ? 'PM' : (COMMISSION_DATA['pm'] ? 'pm' : null);
-            if (code) {
-                summary.totalValue += COMMISSION_DATA[code].commission * item.pmCount;
-                summary.breakdown[code] = (summary.breakdown[code] || 0) + item.pmCount;
+
+        body += '\n\nTotal Summary:\n';
+        body += 'PM/DUSK: ' + dataToSend.reduce((sum, item) => sum + item.pmDuskTotal, 0) + '\n';
+        body += 'Overtime: ' + (dataToSend.reduce((sum, item) => sum + item.overtime, 0)).toFixed(2) + '\n';
+
+        const commissionSummary = dataToSend.reduce((summary, item) => {
+            (item.commissionCodes || []).forEach(code => {
+                if (COMMISSION_DATA[code]) {
+                    summary.totalValue += COMMISSION_DATA[code].commission;
+                    summary.breakdown[code] = (summary.breakdown[code] || 0) + 1;
+                }
+            });
+
+            if (item.pmCount > 0) {
+                const code = COMMISSION_DATA['PM'] ? 'PM' : (COMMISSION_DATA['pm'] ? 'pm' : null);
+                if (code) {
+                    summary.totalValue += COMMISSION_DATA[code].commission * item.pmCount;
+                    summary.breakdown[code] = (summary.breakdown[code] || 0) + item.pmCount;
+                }
+            }
+            if (item.duskCount > 0) {
+                const code = COMMISSION_DATA['DUSK'] ? 'DUSK' : (COMMISSION_DATA['dusk'] ? 'dusk' : null);
+                if (code) {
+                    summary.totalValue += COMMISSION_DATA[code].commission * item.duskCount;
+                    summary.breakdown[code] = (summary.breakdown[code] || 0) + item.duskCount;
+                }
+            }
+            return summary;
+        }, { totalValue: 0, breakdown: {} });
+
+        if (commissionSummary.totalValue > 0) {
+            body += `\nTotal Commission: $${commissionSummary.totalValue.toFixed(2)}\n`;
+            if (Object.keys(commissionSummary.breakdown).length > 0) {
+                body += 'Commission Breakdown:\n';
+                for (const [code, count] of Object.entries(commissionSummary.breakdown)) {
+                    const description = COMMISSION_DATA[code]?.description || code;
+                    body += `- ${description}: ${count}\n`;
+                }
             }
         }
-        if (item.duskCount > 0) {
-            const code = COMMISSION_DATA['DUSK'] ? 'DUSK' : (COMMISSION_DATA['dusk'] ? 'dusk' : null);
-            if (code) {
-                summary.totalValue += COMMISSION_DATA[code].commission * item.duskCount;
-                summary.breakdown[code] = (summary.breakdown[code] || 0) + item.duskCount;
-            }
+
+        if (isMechUser) {
+            body += 'Mech overtime: ' + (dataToSend.reduce((sum, item) => sum + item.amenity, 0)).toFixed(2) + '\n';
         }
-        return summary;
-    }, { totalValue: 0, breakdown: {} });
 
-    if (commissionSummary.totalValue > 0) {
-        body += `\nTotal Commission: $${commissionSummary.totalValue.toFixed(2)}\n`;
-        if (Object.keys(commissionSummary.breakdown).length > 0) {
-            body += 'Commission Breakdown:\n';
-            for (const [code, count] of Object.entries(commissionSummary.breakdown)) {
-                const description = COMMISSION_DATA[code]?.description || code;
-                body += `- ${description}: ${count}\n`;
-            }
-        }
-    }
+        const emailBody = encodeURIComponent(body);
+        const mailtoLink = `mailto:?subject=${subject}&body=${emailBody}`;
+        window.location.href = mailtoLink;
+    }).catch(err => {
+        document.body.removeChild(captureWrapper);
+        console.error('Screenshot failed:', err);
+        alert('Could not generate screenshot. The email will be sent without it.');
 
-    if (isMechUser) {
-        body += 'Mech overtime: ' + (dataToSend.reduce((sum, item) => sum + item.amenity, 0)).toFixed(2) + '\n';
-    }
-
-    const emailBody = encodeURIComponent(body);
-    
-    // Create mailto link
-    const mailtoLink = `mailto:?subject=${subject}&body=${emailBody}`;
-    
-    // Open email client
-    window.location.href = mailtoLink;
+        // Fall back to mailto without screenshot
+        const subject = encodeURIComponent('Payroll Report - ' + formatCurrentDate(new Date()));
+        let body = 'Payroll Report\n\nDate Range: ' + document.getElementById('dateRange').textContent + '\n\n';
+        const emailBody = encodeURIComponent(body);
+        const mailtoLink = `mailto:?subject=${subject}&body=${emailBody}`;
+        window.location.href = mailtoLink;
+    });
 }
 
 async function saveToStorage() {
@@ -743,25 +798,18 @@ async function saveToStorage() {
         pmDuskMode: state.pmDuskMode,
         daysData: state.daysData,
         quantities: state.quantities,
-        selectedCommission: state.selectedCommission
+        selectedCommission: state.selectedCommission,
+        lastUpdated: new Date().toISOString()
     };
 
     // 1. Save locally (Offline First)
     localStorage.setItem(`payroll_data_${username}`, JSON.stringify(dataToSave));
+    
+    // 2. Mark as needing sync
+    localStorage.setItem(`payroll_needs_sync_${username}`, 'true');
 
-    // 2. Try to sync to server (Best Effort)
-    try {
-        await fetch(`/api/data/${username}`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            },
-            body: JSON.stringify(dataToSave)
-        });
-    } catch (e) {
-        console.warn('Server sync failed, data saved locally:', e);
-    }
+    // 3. Try to sync to server (Best Effort)
+    await syncData(username, dataToSave);
 }
 
 async function loadFromStorage() {
@@ -811,6 +859,38 @@ async function loadFromStorage() {
     // Update quantity displays from loaded state
     Object.keys(state.quantities).forEach(type => updateQuantityDisplay(type));
     renderDays(); // Re-render with loaded data
+}
+
+async function checkAndSyncPendingData(username) {
+    if (localStorage.getItem(`payroll_needs_sync_${username}`) === 'true') {
+        console.log('Found unsaved changes, attempting to sync...');
+        const localDataString = localStorage.getItem(`payroll_data_${username}`);
+        if (localDataString) {
+            await syncData(username, JSON.parse(localDataString));
+        }
+    }
+}
+
+async function syncData(username, data) {
+    if (!navigator.onLine) return;
+
+    try {
+        const response = await fetch(`/api/data/${username}`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            console.log('Data synced successfully');
+            localStorage.removeItem(`payroll_needs_sync_${username}`);
+        }
+    } catch (e) {
+        console.warn('Sync failed, will retry later:', e);
+    }
 }
 
 function initializeDarkMode() {
@@ -889,7 +969,7 @@ function showEditDialog(dateKey) {
         dayData.commissions = [];
     }
 
-    // Add event listeners for the switch
+    // PM and DUSK are mutually exclusive — switching mode keeps the same value
     pmBtn.onclick = () => { pmBtn.classList.add('active'); duskBtn.classList.remove('active'); };
     duskBtn.onclick = () => { duskBtn.classList.add('active'); pmBtn.classList.remove('active'); };
 
@@ -1002,6 +1082,7 @@ function saveEditDialog(dateKey) {
 
     const dayData = state.daysData[dateKey];
 
+    // PM and DUSK are mutually exclusive — a day is either PM or DUSK, never both
     dayData['pm-dusk'] = {
         pm: activeMode === 'pm' ? pmDuskValue : 0,
         dusk: activeMode === 'dusk' ? pmDuskValue : 0
@@ -1038,4 +1119,43 @@ function calculateNewQuantity(current, action, type) {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { calculateNewQuantity, formatDate, formatDateKey };
+}
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        const swPath = './service-worker.js';
+        navigator.serviceWorker.register(swPath, { scope: './' })
+            .then(reg => {
+                console.log('Service Worker registered:', reg.scope);
+                
+                // Check for updates immediately and periodically
+                reg.update();
+                
+                // Check for updates every 60 seconds
+                setInterval(() => {
+                    reg.update();
+                }, 60000);
+                
+                // Listen for service worker updates
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New service worker available, prompt user to refresh
+                            if (confirm('New version available! Reload to update?')) {
+                                window.location.reload();
+                            }
+                        }
+                    });
+                });
+            })
+            .catch(err => console.log('Service Worker registration failed:', err));
+        
+        // Listen for service worker controller changes
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            // Reload when new service worker takes control
+            window.location.reload();
+        });
+    });
 }

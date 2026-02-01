@@ -33,7 +33,11 @@ app.use((req, res, next) => {
     next();
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
+if (!process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET environment variable is not set.');
+    process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -62,10 +66,43 @@ async function seedCommissions() {
             _id: code,
             ...data
         }));
-        await commissionsCollection.insertMany(documents);
-        console.log('Commissions seeded successfully.');
+        if (documents.length > 0) {
+            await commissionsCollection.insertMany(documents);
+            console.log('Commissions seeded successfully.');
+        }
     }
 }
+
+// Simple in-memory rate limiter for login attempts
+const loginAttempts = new Map();
+const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_LOGIN_ATTEMPTS = 10;
+
+function loginRateLimiter(req, res, next) {
+    const ip = req.ip;
+    const now = Date.now();
+    const entry = loginAttempts.get(ip);
+
+    if (entry && now - entry.firstAttempt < LOGIN_WINDOW_MS) {
+        if (entry.count >= MAX_LOGIN_ATTEMPTS) {
+            return res.status(429).json({ message: 'Too many login attempts. Try again later.' });
+        }
+        entry.count++;
+    } else {
+        loginAttempts.set(ip, { count: 1, firstAttempt: now });
+    }
+    next();
+}
+
+// Clean up expired entries every 15 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, entry] of loginAttempts) {
+        if (now - entry.firstAttempt >= LOGIN_WINDOW_MS) {
+            loginAttempts.delete(ip);
+        }
+    }
+}, LOGIN_WINDOW_MS);
 
 // --- API Routes ---
 
@@ -81,7 +118,7 @@ app.get('/api/commissions', authenticateToken, async (req, res) => {
 });
 
 // Login
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginRateLimiter, async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
         return res.status(400).json({ message: 'Username and password are required.' });
