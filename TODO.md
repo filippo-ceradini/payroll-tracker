@@ -1,8 +1,13 @@
 # Payroll Tracker To-Do List
 
 ## Pending
-- [ ] True PWA with the system running locally first and then connecting when agent/website is live
-- [ ] Fix borders on iPhone
+- [ ] True PWA with the system running locally first and then connecting when agent/website is live. need a green light/ red light to display when the app is offline and when it has synced(possibly green dot, red dot in the top right corner of the main view).
+needs a way for the user to stay authenticated in the pwa locally.
+needs a way to not display 
+- [x] Fix borders on iPhone. at the moment on the pwa borders of the app are eating precious screen real estate at the borders
+- [ ] Hide "Dusk Dive" and "Afternoon Dive" from commission dropdown (keep in DB)
+- [ ] Need to reformat edit modal to be more good looking
+
 
 ## Completed
 - [x] Commission dropdown in alphabetical order

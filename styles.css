@@ -771,81 +771,86 @@ body.dark-mode .save-btn:hover {
 /* Mobile responsive */
 @media (max-width: 600px) {
     body {
-        padding: 10px;
+        padding: 0;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
     }
-    
+
     .container {
-        border-radius: 15px;
+        border-radius: 0;
+        box-shadow: none !important;
     }
-    
+
     header {
         padding: 12px;
     }
-    
+
     .header-content {
         gap: 10px;
     }
-    
+
     header h1 {
         font-size: 18px;
     }
-    
+
     .dark-mode-toggle {
         width: 36px;
         height: 36px;
         font-size: 18px;
     }
-    
+
     .grid-header,
     .day-row {
         grid-template-columns: 50px 0.6fr 1.6fr 0.6fr 0.6fr;
         font-size: 11px;
     }
-    
+
     .header-cell,
     .day-cell {
         padding: 5px 6px;
         font-size: 11px;
     }
-    
+
     .nav-btn {
         padding: 8px 12px;
         font-size: 12px;
     }
-    
+
     .edit-dialog-content {
         width: 95%;
         max-height: 95vh;
     }
-    
+
     .edit-dialog-header {
         padding: 15px;
     }
-    
+
     .edit-dialog-body {
         padding: 15px;
     }
-    
+
     .edit-controls {
         flex-direction: column;
         gap: 15px;
     }
-    
+
     .number-input button {
         width: 36px;
         height: 36px;
     }
-    
+
     .number-input input {
         width: 50px;
         height: 36px;
         font-size: 16px;
     }
-    
+
     .edit-dialog-footer {
         padding: 15px;
     }
-    
+
     .cancel-btn,
     .save-btn {
         padding: 10px 20px;
@@ -1211,49 +1216,11 @@ body.is-admin:not(.is-mech-user) .day-row {
     }
 }
 
-/* Mobile responsive */
+/* Mobile grid column override */
 @media (max-width: 600px) {
-    body {
-        padding: 10px;
-    }
-    
-    .container {
-        border-radius: 15px;
-    }
-    
-    header {
-        padding: 12px;
-    }
-    
-    .header-content {
-        gap: 10px;
-    }
-    
-    header h1 {
-        font-size: 18px;
-    }
-    
-    .dark-mode-toggle {
-        width: 36px;
-        height: 36px;
-        font-size: 18px;
-    }
-    
     .grid-header,
     .day-row {
         grid-template-columns: 40px 0.6fr 1.4fr 0.6fr 0.6fr;
-        font-size: 11px;
-    }
-    
-    .header-cell,
-    .day-cell {
-        padding: 5px 6px;
-        font-size: 11px;
-    }
-    
-    .nav-btn {
-        padding: 8px 12px;
-        font-size: 12px;
     }
 }
 
